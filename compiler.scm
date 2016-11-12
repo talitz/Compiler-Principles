@@ -41,15 +41,15 @@
 	(new    (*parser (char #\+))
                 (*parser (char #\-))
 		(*disj 2)
-		(*parser (<Natural>))
-		(*parser (*caten 2))
-		(*parser (<Natural>))
+		(*parser <Natural>)
+		(*parser *caten 2)
+		(*parser <Natural>)
 		(*disj 2)
 	     done))
 	     
 (define <Fraction>
-	(new    (*parser (<Integer>))
-		(*parser (<Natural>))
+	(new    (*parser <Integer>)
+		(*parser <Natural>)
 		(*disj 2)
 	     done))
 
@@ -78,7 +78,7 @@
 	(new    (*parser (char #\))
                 (*parser (char #\x))
                 (*caten 2)
-		(*parser (<HexChar>) *star
+		(*parser <HexChar>) *star
 		(*parser (char #\;))
                 (*caten 3)
 	     done))
@@ -92,7 +92,7 @@
 	     
 (define <String>
 	(new    (*parser (char #\"))
-		(*parser (<StringChar>)) *star
+		(*parser <StringChar>) *star
 		(*parser (char #\"))
 		(*caten 3)
 	     done))	
@@ -131,7 +131,7 @@
         (new    (*parser (char #\())
                 (*parser <sexpr>) *plus
                 (*parser (char #\.)
-                (*parser (<sexpr>))
+                (*parser <sexpr>)
                 (*parser (char #\)))
                 (*caten 5)
         done))
@@ -139,39 +139,39 @@
 (define <Vector>
         (new    (*parser (char #\#))
                 (*parser (char #\())
-                (*parser (<sexpr>)) *star
+                (*parser <sexpr>) *star
                 (*parser (char #\)))
                 (*caten 4)
         done))
 
 (define <Quoted>
         (new    (*parser (char #\'))
-                (*parser (<sexpr>))
+                (*parser <sexpr>)
                 (*caten 2)
         done))
         
 (define <QuasiQuoted>
         (new    (*parser (char #\`))
-                (*parser (<sexpr>))
+                (*parser <sexpr>)
                 (*caten 2)
         done))
         
 (define <Unquoted>
         (new    (*parser (char #\,))
-                (*parser (<sexpr>))
+                (*parser <sexpr>)
                 (*caten 2)
         done))        
         
 (define <UnquotedAndSpliced>
         (new    (*parser (char #\,))
                 (*parser (char #\@))
-                (*parser (<sexpr>))
+                (*parser <sexpr>)
                 (*caten 3)
         done))
         
 (define <InfixExtension>
-        (new    (*parser (<InfixPrefixExtensionPrefix>))
-                (*parser (<InfixExpression>))
+        (new    (*parser <InfixPrefixExtensionPrefix>)
+                (*parser <InfixExpression>)
                 (*caten 2)
         done))
         
@@ -186,18 +186,18 @@
         done))
         
 (define <InfixPrefixExtensionPrefix
-        (new    (*parser (<InfixAdd>))
-                (*parser (<InfixNeg>))
-                (*parser (<InfixSub>))
-                (*parser (<InfixMul>))
-                (*parser (<InfixDiv>))
-                (*parser (<InfixPow>))
-                (*parser (<InfixArrayGet>))
-                (*parser (<InfixFuncall>))
-                (*parser (<InfixParen>))
-                (*parser (<InfixSexprEscape>))
-                (*parser (<InfixSymbol>))
-                (*parser (<InfixNumber>))
+        (new    (*parser <InfixAdd>)
+                (*parser <InfixNeg>)
+                (*parser <InfixSub>)
+                (*parser <InfixMul>)
+                (*parser <InfixDiv>)
+                (*parser <InfixPow>)
+                (*parser <InfixArrayGet>)
+                (*parser <InfixFuncall>)
+                (*parser <InfixParen>)
+                (*parser <InfixSexprEscape>)
+                (*parser <InfixSymbol>)
+                (*parser <InfixNumber>)
                 (*disj 12)
         done))
         
