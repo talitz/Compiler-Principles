@@ -1,40 +1,17 @@
 (load "./pc.scm")
-
-(define <sexpr>
-	(new    (*parser <Boolean>)
-	        (*parser <Char>)
-		(*parser <Number>)
-		(*parser <String>)
-		(*parser <Symbol>)
-		(*parser <ProperList>)
-		(*parser <ImproperList>)
-		(*parser <Vector>)
-		(*parser <Quoted>)
-		(*parser <QuasiQuoted>)
-		(*parser <Unquoted>)
-		(*parser <UnquoteAndSpliced>)
-		(*parser <InfixExtension>)
-		(*disj 13)
-	     done))
-
-(define <Boolean>
-	(new    (*parser (char #\#t))
-	        (*parser (char #\#f)
-		(*disj 2)
-	     done))
-
-(define <Char>
-	(new    (*parser <CharPrefix>)
-	        (*parser <VisibleSimpleChar>)
-                (*parser <NamedChar>)
-                (*parser <HexUnicodeChar>)
-                (*disj 3)
-                (*caten 2)
-	     done))
 		
 (define <CharPrefix>
-         (new   (char #\#\)
-          done))
+      (new     (*parser (char #\#))
+               (*parser (char #\\))
+               (*caten 2)
+       done))
+       
+(define <HexChar>
+	(new    (*parser (range #\0 #\9))
+	        (*parser (range #\a #\f))
+		(*disj 2) 
+	     done))
+     
 
 (define <VisibleSimpleChar> (range #\! #\xff))
 
@@ -55,18 +32,10 @@
 	        (*parser <HexChar>) *star
 		(*caten 2) 
 	     done))
-          
-(define <HexChar>
-	(new    (*parser (range #\0 #\9))
-	        (*parser (range #\a #\f))
-		(*disj 2) 
-	     done))
-
-(define <Number>
-	(new    (*parser <Integer>)
-	        (*parser <Fraction>)
-		(*disj 2) 
-	     done))
+	     
+(define <Natural>
+	(new    (*parser (range #\0 #\9)) *plus
+         done))
 	     
 (define <Integer>
 	(new    (*parser (char #\+))
@@ -83,13 +52,12 @@
 		(*parser (<Natural>))
 		(*disj 2)
 	     done))
-	     
-(define <String>
-	(new    (*parser (char #\"))
-		(*parser (<StringChar>)) *star
-		(*parser (char #\"))
-		(*caten 3)
-	     done))	     
+
+(define <Number>
+	(new    (*parser <Integer>)
+	        (*parser <Fraction>)
+		(*disj 2) 
+	     done))
 	     
 (define <StringVisibleChar> 
             (range #\space #\xff)
@@ -114,6 +82,20 @@
 		(*parser (char #\;))
                 (*caten 3)
 	     done))
+	     
+(define <StringChar>
+        (new    (*parser <StringVisibleChar>)
+                (*parser <StringHexChar)
+                (*parser <StringMetaChar>)
+                (*disj 3)
+             done))
+	     
+(define <String>
+	(new    (*parser (char #\"))
+		(*parser (<StringChar>)) *star
+		(*parser (char #\"))
+		(*caten 3)
+	     done))	
 	     
 (define <Symbol>
         (new    (*parser <SymbolChar>) *plus
@@ -189,7 +171,7 @@
         
 (define <InfixExtension>
         (new    (*parser (<InfixPrefixExtensionPrefix>))
-                (*parser (<InfixExpression>)
+                (*parser (<InfixExpression>))
                 (*caten 2)
         done))
         
@@ -321,3 +303,39 @@
                 (*parser <sexpr>)
                 (*caten 2)
         done))
+        
+(define <Boolean>
+	(new    (*parser (char #\#))
+	        (*parser (char #\t))
+	        (*caten 2)
+	        (*parser (char #\#))
+	        (*parser (char #\f))
+	        (*caten 2)
+		(*disj 2)
+	     done))
+
+(define <Char>
+	(new    (*parser <CharPrefix>)
+	        (*parser <VisibleSimpleChar>)
+                (*parser <NamedChar>)
+                (*parser <HexUnicodeChar>)
+                (*disj 3)
+                (*caten 2)
+	     done))
+        
+(define <sexpr>
+	(new    (*parser <Boolean>)
+	        (*parser <Char>)
+	        (*parser <Number>)
+		(*parser <String>)
+		(*parser <Symbol>)
+		(*parser <ProperList>)
+		(*parser <ImproperList>)
+		(*parser <Vector>)
+		(*parser <Quoted>)
+		(*parser <QuasiQuoted>)
+		(*parser <Unquoted>)
+		(*parser <UnquoteAndSpliced>)
+		(*parser <InfixExtension>)
+		(*disj 13)
+	     done))
