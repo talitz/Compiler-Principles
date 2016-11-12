@@ -8,7 +8,13 @@
 	        (*parser (char #\f))
 	        (*caten 2)
 		(*disj 2)
-	     done))
+		(*pack-with 
+		  (lambda (a b)
+		    (if (eq? b #\t)
+		       #t
+		       #f)
+                    ))
+        done))
 	     
 (define <CharPrefix>
       (new     (*parser (char #\#))
@@ -49,6 +55,10 @@
                 (*parser <HexUnicodeChar>)
                 (*disj 3)
                 (*caten 2)
+                (*pack-with
+                  (lambda (a b)
+                    b
+                  ))
 	     done))
 	     
 (define <Natural>
