@@ -1,18 +1,21 @@
 (load "./pc.scm")
-		
+
+(define <Boolean>
+	(new    (*parser (char #\#))
+	        (*parser (char #\t))
+	        (*caten 2)
+	        (*parser (char #\#))
+	        (*parser (char #\f))
+	        (*caten 2)
+		(*disj 2)
+	     done))
+	     
 (define <CharPrefix>
       (new     (*parser (char #\#))
                (*parser (char #\\))
                (*caten 2)
        done))
        
-(define <HexChar>
-	(new    (*parser (range #\0 #\9))
-	        (*parser (range #\a #\f))
-		(*disj 2) 
-	     done))
-     
-
 (define <VisibleSimpleChar> (range #\! #\xff))
 
 
@@ -27,10 +30,25 @@
 		(*disj 6) ;add one after page is completed
 	     done))
 	     
+(define <HexChar>
+	(new    (*parser (range #\0 #\9))
+	        (*parser (range #\a #\f))
+		(*disj 2) 
+	     done))
+	     
 (define <HexUnicodeChar>
 	(new    (*parser (char #\x))
 	        (*parser <HexChar>) *star
 		(*caten 2) 
+	     done))
+
+(define <Char>
+	(new    (*parser <CharPrefix>)
+	        (*parser <VisibleSimpleChar>)
+                (*parser <NamedChar>)
+                (*parser <HexUnicodeChar>)
+                (*disj 3)
+                (*caten 2)
 	     done))
 	     
 (define <Natural>
@@ -42,7 +60,7 @@
                 (*parser (char #\-))
 		(*disj 2)
 		(*parser <Natural>)
-		(*parser *caten 2)
+		(*caten 2)
 		(*parser <Natural>)
 		(*disj 2)
 	     done))
@@ -59,10 +77,7 @@
 		(*disj 2) 
 	     done))
 	     
-(define <StringVisibleChar> 
-            (range #\space #\xff)
-	     done))
-	     
+(define <StringVisibleChar> (range #\space #\xff))
 	     
 (define <StringMetaChar>
 	(new    (*parser (char #\\))  ;ask Mayer after
@@ -75,7 +90,7 @@
 	     done))
 
 (define <StringHexChar>
-	(new    (*parser (char #\))
+	(new    (*parser (char #\)))
                 (*parser (char #\x))
                 (*caten 2)
 		(*parser <HexChar>) *star
@@ -85,7 +100,7 @@
 	     
 (define <StringChar>
         (new    (*parser <StringVisibleChar>)
-                (*parser <StringHexChar)
+                (*parser <StringHexChar>)
                 (*parser <StringMetaChar>)
                 (*disj 3)
              done))
@@ -96,10 +111,6 @@
 		(*parser (char #\"))
 		(*caten 3)
 	     done))	
-	     
-(define <Symbol>
-        (new    (*parser <SymbolChar>) *plus
-        done))
 	     
 (define <SymbolChar>
         (new    (*parser (range #\0 #\9))
@@ -118,20 +129,24 @@
                 (*parser (char #\?))
                 (*parser (char #\/))
                 (*disj 15)
-        done))	     
-
+        done))	    
+	     
+(define <Symbol>
+        (new    (*parser <SymbolChar>) *plus
+        done))
+	     
 (define <ProperList>
         (new    (*parser (char #\())
-                (*parser <sexpr>) *star
+                (*delayed (lambda () <sexpr>)) *star
                 (*parser (char #\)))
                 (*caten 3)
         done))
 
 (define <ImproperList>
         (new    (*parser (char #\())
-                (*parser <sexpr>) *plus
-                (*parser (char #\.)
-                (*parser <sexpr>)
+                (*delayed (lambda () <sexpr>)) *plus
+                (*parser (char #\.))
+                (*delayed (lambda () <sexpr>))
                 (*parser (char #\)))
                 (*caten 5)
         done))
@@ -139,43 +154,53 @@
 (define <Vector>
         (new    (*parser (char #\#))
                 (*parser (char #\())
-                (*parser <sexpr>) *star
+                (*delayed (lambda () <sexpr>)) *star
                 (*parser (char #\)))
                 (*caten 4)
         done))
-
+        
 (define <Quoted>
         (new    (*parser (char #\'))
-                (*parser <sexpr>)
+                (*delayed (lambda()  <sexpr>))
                 (*caten 2)
         done))
         
 (define <QuasiQuoted>
         (new    (*parser (char #\`))
-                (*parser <sexpr>)
+                (*delayed (lambda()  <sexpr>))
                 (*caten 2)
         done))
         
 (define <Unquoted>
         (new    (*parser (char #\,))
-                (*parser <sexpr>)
+                (*delayed (lambda()  <sexpr>))
                 (*caten 2)
         done))        
         
 (define <UnquotedAndSpliced>
         (new    (*parser (char #\,))
                 (*parser (char #\@))
-                (*parser <sexpr>)
+                (*delayed (lambda()  <sexpr>))
                 (*caten 3)
         done))
         
-(define <InfixExtension>
-        (new    (*parser <InfixPrefixExtensionPrefix>)
-                (*parser <InfixExpression>)
-                (*caten 2)
+(define <InfixExpression>
+        (new    (*delayed (lambda() (*parser <InfixAdd>)))
+                (*delayed (lambda() (*parser <InfixNeg>)))
+                (*delayed (lambda() (*parser <InfixSub>)))
+                (*delayed (lambda() (*parser <InfixMul>)))
+                (*delayed (lambda() (*parser <InfixDiv>)))
+                (*delayed (lambda() (*parser <InfixPow>)))
+                (*delayed (lambda() (*parser <InfixArrayGet>)))
+                (*delayed (lambda() (*parser <InfixFuncall>)))
+                (*delayed (lambda() (*parser <InfixParen>)))
+                (*delayed (lambda() (*parser <InfixSexprEscape>)))
+                (*delayed (lambda() (*parser <InfixSymbol>)))
+                (*delayed (lambda() (*parser <InfixNumber>)))
+                (*disj 12)
         done))
         
-(define <InfixPrefixExtensionPrefix
+(define <InfixPrefixExtensionPrefix>
         (new    (*parser (char #\#))
                 (*parser (char #\#))
                 (*caten 2)
@@ -183,22 +208,6 @@
                 (*parser (char #\%))
                 (*caten 2)
                 (*disj 2)
-        done))
-        
-(define <InfixPrefixExtensionPrefix
-        (new    (*parser <InfixAdd>)
-                (*parser <InfixNeg>)
-                (*parser <InfixSub>)
-                (*parser <InfixMul>)
-                (*parser <InfixDiv>)
-                (*parser <InfixPow>)
-                (*parser <InfixArrayGet>)
-                (*parser <InfixFuncall>)
-                (*parser <InfixParen>)
-                (*parser <InfixSexprEscape>)
-                (*parser <InfixSymbol>)
-                (*parser <InfixNumber>)
-                (*disj 12)
         done))
         
 (define <InfixSymbol>
@@ -216,43 +225,36 @@
         done))
         
 (define <InfixAdd>
-        (new    (*parser <InfixExpression)
+        (new    (*parser <InfixExpression>)
                 (*parser (char #\+))
-                (*parser <InfixExpression)
+                (*parser <InfixExpression>)
                 (*caten 3)
         done))
         
 (define <InfixNeg>
         (new    (*parser (char #\-))
-                (*parser <InfixExpression)
+                (*parser <InfixExpression>)
                 (*caten 2)
         done))
       
 (define <InfixSub>
-        (new    (*parser <InfixExpression)
+        (new    (*parser <InfixExpression>)
                 (*parser (char #\-))
-                (*parser <InfixExpression)
+                (*parser <InfixExpression>)
                 (*caten 3)
         done))
         
 (define <InfixMul>
-        (new    (*parser <InfixExpression)
+        (new    (*parser <InfixExpression>)
                 (*parser (char #\*))
-                (*parser <InfixExpression)
+                (*parser <InfixExpression>)
                 (*caten 3)
         done))
         
 (define <InfixDiv>
-        (new    (*parser <InfixExpression)
+        (new    (*parser <InfixExpression>)
                 (*parser (char #\/))
-                (*parser <InfixExpression)
-                (*caten 3)
-        done))
-        
-(define <InfixPow>
-        (new    (*parser <InfixExpression)
-                (*parser <PowerSymbol>)
-                (*parser <InfixExpression)
+                (*parser <InfixExpression>)
                 (*caten 3)
         done))
         
@@ -264,19 +266,18 @@
                 (*disj 2)
         done))
         
+(define <InfixPow>
+        (new    (*parser <InfixExpression>)
+                (*parser <PowerSymbol>)
+                (*parser <InfixExpression>)
+                (*caten 3)
+        done))
+        
 (define <InfixArrayGet>
         (new    (*parser <InfixExpression>)
                 (*parser (char #\[))
                 (*parser <InfixExpression>)
                 (*parser (char #\]))
-                (*caten 4)
-        done))
-        
-(define <InfixFuncall>
-        (new    (*parser <InfixExpression>)
-                (*parser (char #\())
-                (*parser <InfixArgList>)
-                (*parser (char #\)))
                 (*caten 4)
         done))
         
@@ -291,6 +292,14 @@
                 (*disj 2)
         done))
         
+(define <InfixFuncall>
+        (new    (*parser <InfixExpression>)
+                (*parser (char #\())
+                (*parser <InfixArgList>)
+                (*parser (char #\)))
+                (*caten 4)
+        done))
+        
 (define <InfixParen>
         (new    (*parser (char #\())
                 (*parser <InfixExpression>)
@@ -300,28 +309,15 @@
                 
 (define <InfixSexprEscape>
         (new    (*parser <InfixPrefixExtensionPrefix>)
-                (*parser <sexpr>)
+                (*delayed (lambda () <sexpr>))
                 (*caten 2)
         done))
         
-(define <Boolean>
-	(new    (*parser (char #\#))
-	        (*parser (char #\t))
-	        (*caten 2)
-	        (*parser (char #\#))
-	        (*parser (char #\f))
-	        (*caten 2)
-		(*disj 2)
-	     done))
-
-(define <Char>
-	(new    (*parser <CharPrefix>)
-	        (*parser <VisibleSimpleChar>)
-                (*parser <NamedChar>)
-                (*parser <HexUnicodeChar>)
-                (*disj 3)
+(define <InfixExtension>
+        (new    (*parser <InfixPrefixExtensionPrefix>)
+                (*parser <InfixExpression>)
                 (*caten 2)
-	     done))
+        done))
         
 (define <sexpr>
 	(new    (*parser <Boolean>)
@@ -335,7 +331,7 @@
 		(*parser <Quoted>)
 		(*parser <QuasiQuoted>)
 		(*parser <Unquoted>)
-		(*parser <UnquoteAndSpliced>)
+		(*parser <UnquotedAndSpliced>)
 		(*parser <InfixExtension>)
 		(*disj 13)
 	     done))
