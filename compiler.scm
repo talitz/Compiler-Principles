@@ -39,4 +39,6 @@
 (define <VisibleSimpleChar>
          (new   (*char #\#\)
           done))
+          
+          eli simhayev is gay
 
