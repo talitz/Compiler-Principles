@@ -175,30 +175,45 @@
 	     
 (define <Symbol>
         (new    (*parser <SymbolChar>) *plus
+                (*pack (lambda (a)
+                    (string->symbol (list->string a))))
         done))
 	     
 (define <ProperList>
         (new    (*parser (char #\())
-                (*delayed (lambda () <sexpr>)) *star
+                (*delayed (lambda () <sexpr>))
+                (*parser (char #\space))
+                (*delayed (lambda () <sexpr>))
+                (*caten 2) *star
                 (*parser (char #\)))
-                (*caten 3)
+                (*caten 4)
+                (*pack-with (lambda (a b c d)
+                    (append (list b) (map cadr c))))
         done))
 
 (define <ImproperList>
         (new    (*parser (char #\())
-                (*delayed (lambda () <sexpr>)) *plus
+                (*delayed (lambda () <sexpr>))
+                (*parser (char #\space))
+                (*caten 2) *plus
                 (*parser (char #\.))
+                (*parser (char #\space))
                 (*delayed (lambda () <sexpr>))
                 (*parser (char #\)))
-                (*caten 5)
+                (*caten 6)
+                (*pack-with (lambda (a b c d e f)
+                    `(,@(map car b) . ,e))
+                        )
         done))
         
 (define <Vector>
         (new    (*parser (char #\#))
                 (*parser (char #\())
-                (*delayed (lambda () <sexpr>)) *star
+                (*delayed (lambda () <sexpr>))
                 (*parser (char #\)))
                 (*caten 4)
+                (*pack-with (lambda (a b c d)
+                    (apply vector c)))
         done))
         
 (define <Quoted>
