@@ -26,36 +26,48 @@
 
 
 (define <NamedChar>
-	(new    (*parser (char #\x03BB))
-	        (*parser (char #\x12))
-                (*parser (char #\nul))
-               ; (*parser (char #\page)) 
-	        (*parser (char #\return))
-	        (*parser (char #\space))
-	        (*parser (char #\tab))
-		(*disj 6) ;add one after page is completed
+	(new    (*parser (word "lambda"))
+	        (*parser (word "newline"))
+            (*parser (word "nul"))
+            (*parser (word "page")) 
+	        (*parser (word "return"))
+	        (*parser (word "space"))
+	        (*parser (word "tab"))
+		(*disj 7) 
+                (*pack
+                  (lambda (a)
+                    (cond ((equal? (list->string a) "lambda") #\x03bb)
+                          ((equal? (list->string a) "newline") #\newline)
+                          ((equal? (list->string a) "nul") #\nul)
+                          ((equal? (list->string a) "page") #\page)
+                          ((equal? (list->string a) "return") #\return)
+                          ((equal? (list->string a) "space") #\space)
+                          ((equal? (list->string a) "tab") #\tab)
+                          (else ("error")))))
 	     done))
 	     
 (define <HexChar>
 	(new    (*parser (range #\0 #\9))
 	        (*parser (range #\a #\f))
-		(*disj 2) 
+		    (*disj 2) 
 	     done))
 	     
 (define <HexUnicodeChar>
 	(new    (*parser (char #\x))
 	        (*parser <HexChar>) *star
-		(*caten 2) 
+		    (*caten 2)
+		    (*pack-with (lambda (a b)
+		       (integer->char (string->number (list->string b) 16))))
 	     done))
 
 (define <Char>
 	(new    (*parser <CharPrefix>)
+            (*parser <NamedChar>)
+            (*parser <HexUnicodeChar>)
 	        (*parser <VisibleSimpleChar>)
-                (*parser <NamedChar>)
-                (*parser <HexUnicodeChar>)
-                (*disj 3)
-                (*caten 2)
-                (*pack-with
+            (*disj 3)
+            (*caten 2)
+            (*pack-with
                   (lambda (a b)
                     b
                   ))
@@ -63,63 +75,83 @@
 	     
 (define <Natural>
 	(new    (*parser (range #\0 #\9)) *plus
+	        (*pack (lambda (a)
+	            (string->number (list->string a))))
          done))
 	     
 (define <Integer>
 	(new    (*parser (char #\+))
-                (*parser (char #\-))
-		(*disj 2)
-		(*parser <Natural>)
-		(*caten 2)
-		(*parser <Natural>)
-		(*disj 2)
+            (*parser (char #\-))
+		    (*disj 2)
+		    (*parser <Natural>)
+		    (*caten 2)
+		    (*pack-with (lambda (a b)
+		       (if (equal? a #\+) b (- b))))
+		    (*parser <Natural>)
+		    (*disj 2)
 	     done))
 	     
 (define <Fraction>
 	(new    (*parser <Integer>)
-		(*parser <Natural>)
-		(*disj 2)
+	        (*parser (char #\/))
+		    (*parser <Natural>)
+		    (*caten 3)
+		    (*pack-with (lambda (a b c)
+		        (/ a c)))
 	     done))
 
 (define <Number>
-	(new    (*parser <Integer>)
-	        (*parser <Fraction>)
+	(new   (*parser <Fraction>) 
+	       (*parser <Integer>)
 		(*disj 2) 
 	     done))
 	     
-(define <StringVisibleChar> (range #\space #\xff))
+(define <StringVisibleChar> (range #\space #\xffff))
 	     
 (define <StringMetaChar>
-	(new    (*parser (char #\\))  ;ask Mayer after
-		(*parser (char #\"))
-		(*parser (char #\t))
-		(*parser (char #\f))
-		(*parser (char #\n))
-		(*parser (char #\r))
-		(*disj 6)
+	(new    (*parser (char #\\)) 
+	        (*parser (char #\\))  ;ask Mayer after
+		    (*parser (char #\"))
+		    (*parser (char #\t))
+		    (*parser (char #\f))
+		    (*parser (char #\n))
+            (*parser (char #\r))
+		    (*disj 6)
+		    (*caten 2)
+		    (*pack-with (lambda (a b)
+		         (cond ((equal? b #\\) #\\)
+		               ((equal? b #\") #\")
+		               ((equal? b #\t) #\tab)
+		               ((equal? b #\f) #\xc)
+		               ((equal? b #\n) #\xa)
+		               ((equal? b #\r) #\xd))))
 	     done))
 
 (define <StringHexChar>
-	(new    (*parser (char #\)))
-                (*parser (char #\x))
-                (*caten 2)
-		(*parser <HexChar>) *star
-		(*parser (char #\;))
-                (*caten 3)
+	(new    (*parser (char #\\))
+            (*parser (char #\x))
+            (*caten 2)
+		    (*parser <HexChar>) *star
+		    (*parser (char #\;))
+            (*caten 3)
+            (*pack-with (lambda (a b c)
+                (integer->char (string->number (list->string b) 16))))
 	     done))
 	     
 (define <StringChar>
-        (new    (*parser <StringVisibleChar>)
-                (*parser <StringHexChar>)
+        (new    (*parser <StringHexChar>)
                 (*parser <StringMetaChar>)
+                (*parser <StringVisibleChar>)
                 (*disj 3)
              done))
 	     
 (define <String>
-	(new    (*parser (char #\"))
-		(*parser <StringChar>) *star
-		(*parser (char #\"))
-		(*caten 3)
+	(new    (*parser (char #\"))  
+		    (*parser <StringChar>) (*parser (char #\")) *diff *star
+		    (*parser (char #\"))
+		    (*caten 3) 
+		    (*pack-with (lambda (a b c)
+		       (list->string b)))
 	     done))	
 	     
 (define <SymbolChar>
@@ -331,17 +363,17 @@
         
 (define <sexpr>
 	(new    (*parser <Boolean>)
-	        (*parser <Char>)
 	        (*parser <Number>)
-		(*parser <String>)
-		(*parser <Symbol>)
-		(*parser <ProperList>)
-		(*parser <ImproperList>)
-		(*parser <Vector>)
-		(*parser <Quoted>)
-		(*parser <QuasiQuoted>)
-		(*parser <Unquoted>)
-		(*parser <UnquotedAndSpliced>)
-		(*parser <InfixExtension>)
-		(*disj 13)
+	        (*parser <Char>)
+		    (*parser <String>)
+		    (*parser <Symbol>)
+		    (*parser <ProperList>)
+		    (*parser <ImproperList>)
+		    (*parser <Vector>)
+		    (*parser <Quoted>)
+		    (*parser <QuasiQuoted>)
+		    (*parser <Unquoted>)
+		    (*parser <UnquotedAndSpliced>)
+		    (*parser <InfixExtension>)
+		    (*disj 13)
 	     done))
