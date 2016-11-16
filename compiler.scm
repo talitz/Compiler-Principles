@@ -2,18 +2,15 @@
 
 (define <Boolean>
 	(new    (*parser (char #\#))
-	        (*parser (char #\t))
+	        (*parser (char-ci #\t))
 	        (*caten 2)
 	        (*parser (char #\#))
-	        (*parser (char #\f))
+	        (*parser (char-ci #\f))
 	        (*caten 2)
 		(*disj 2)
 		(*pack-with 
 		  (lambda (a b)
-		    (if (eq? b #\t)
-		       #t
-		       #f)
-                    ))
+		    (if (or (eq? b #\t) (eq? b #\T)) #t #f)))
         done))
 	     
 (define <CharPrefix>
@@ -26,13 +23,13 @@
 
 
 (define <NamedChar>
-	(new    (*parser (word "lambda"))
-	        (*parser (word "newline"))
-            (*parser (word "nul"))
-            (*parser (word "page")) 
-	        (*parser (word "return"))
-	        (*parser (word "space"))
-	        (*parser (word "tab"))
+	(new    (*parser (word-ci "lambda"))
+	        (*parser (word-ci "newline"))
+            (*parser (word-ci "nul"))
+            (*parser (word-ci "page")) 
+	        (*parser (word-ci "return"))
+	        (*parser (word-ci "space"))
+	        (*parser (word-ci "tab"))
 		(*disj 7) 
                 (*pack
                   (lambda (a)
@@ -53,7 +50,7 @@
 	     done))
 	     
 (define <HexUnicodeChar>
-	(new    (*parser (char #\x))
+	(new    (*parser (char-ci #\x))
 	        (*parser <HexChar>) *star
 		    (*caten 2)
 		    (*pack-with (lambda (a b)
@@ -110,26 +107,26 @@
 	     
 (define <StringMetaChar>
 	(new    (*parser (char #\\)) 
-	        (*parser (char #\\))  ;ask Mayer after
+	        (*parser (char #\\)) 
 		    (*parser (char #\"))
-		    (*parser (char #\t))
-		    (*parser (char #\f))
-		    (*parser (char #\n))
-            (*parser (char #\r))
+		    (*parser (char-ci #\t))
+		    (*parser (char-ci #\f))
+		    (*parser (char-ci #\n))
+            (*parser (char-ci #\r))
 		    (*disj 6)
 		    (*caten 2)
 		    (*pack-with (lambda (a b)
 		         (cond ((equal? b #\\) #\\)
 		               ((equal? b #\") #\")
-		               ((equal? b #\t) #\tab)
-		               ((equal? b #\f) #\xc)
-		               ((equal? b #\n) #\xa)
-		               ((equal? b #\r) #\xd))))
+		               ((or (equal? b #\t) (equal? b #\T)) #\tab)
+		               ((or (equal? b #\f) (equal? b #\F)) #\xc)
+		               ((or (equal? b #\n) (equal? b #\N)) #\xa)
+		               ((or (equal? b #\r) (equal? b #\R)) #\xd))))
 	     done))
 
 (define <StringHexChar>
 	(new    (*parser (char #\\))
-            (*parser (char #\x))
+            (*parser (char-ci #\x))
             (*caten 2)
 		    (*parser <HexChar>) *plus
 		    (*parser (char #\;))
@@ -261,18 +258,18 @@
         done))
         
 (define <InfixExpression>
-        (new    (*delayed (lambda() (*parser <Number>)))
-                (*delayed (lambda() (*parser <InfixAdd>)))
-                (*delayed (lambda() (*parser <InfixNeg>)))
-                (*delayed (lambda() (*parser <InfixSub>)))
-                (*delayed (lambda() (*parser <InfixMul>)))
-                (*delayed (lambda() (*parser <InfixDiv>)))
-                (*delayed (lambda() (*parser <InfixPow>)))
-                (*delayed (lambda() (*parser <InfixArrayGet>)))
-                (*delayed (lambda() (*parser <InfixFuncall>)))
-                (*delayed (lambda() (*parser <InfixParen>)))
-                (*delayed (lambda() (*parser <InfixSexprEscape>)))
-                (*delayed (lambda() (*parser <InfixSymbol>)))
+        (new    (*delayed (lambda() <InfixAdd>))
+                (*delayed (lambda() <InfixNeg>))
+                (*delayed (lambda() <InfixSub>))
+                (*delayed (lambda() <InfixMul>))
+                (*delayed (lambda() <InfixDiv>))
+                (*delayed (lambda() <InfixPow>))
+                (*delayed (lambda() <InfixArrayGet>))
+                (*delayed (lambda() <InfixFuncall>))
+                (*delayed (lambda() <InfixParen>))
+                (*delayed (lambda() <InfixSexprEscape>))
+                (*delayed (lambda() <Number>))
+                (*delayed (lambda() <InfixSymbol>))
                 (*disj 12)
         done))
         
@@ -393,6 +390,8 @@
         (new    (*parser <InfixPrefixExtensionPrefix>)
                 (*parser <InfixExpression>)
                 (*caten 2)
+                (*pack-with (lambda (a b)
+                   b))
         done))
         
 (define <sexpr>
