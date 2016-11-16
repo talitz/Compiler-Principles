@@ -131,7 +131,7 @@
 	(new    (*parser (char #\\))
             (*parser (char #\x))
             (*caten 2)
-		    (*parser <HexChar>) *star
+		    (*parser <HexChar>) *plus
 		    (*parser (char #\;))
             (*caten 3)
             (*pack-with (lambda (a b c)
@@ -219,11 +219,15 @@
                 (*parser (char #\space))
                 (*delayed (lambda () <sexpr>))
                 (*caten 2) *star
+                (*pack(lambda (a)
+                    (map cadr a)))
                 (*caten 2)
+                (*pack-with (lambda (a b)
+                    (list a b)))
                 (*parser (char #\)))
                 (*caten 4)
                 (*pack-with (lambda (a b c d)
-                    (vector (append (list (car c)) (cadr c)))))
+                    (apply vector (append (list (car c)) (cadr c)))))
                 (*disj 2)
         done))
         
@@ -231,12 +235,16 @@
         (new    (*parser (char #\'))
                 (*delayed (lambda()  <sexpr>))
                 (*caten 2)
+                (*pack-with (lambda (a b)
+                    `',b))
         done))
         
 (define <QuasiQuoted>
         (new    (*parser (char #\`))
                 (*delayed (lambda()  <sexpr>))
                 (*caten 2)
+                (*pack-with (lambda (a b)
+                     (string->char (list->string (list a b)))))
         done))
         
 (define <Unquoted>
@@ -253,7 +261,8 @@
         done))
         
 (define <InfixExpression>
-        (new    (*delayed (lambda() (*parser <InfixAdd>)))
+        (new    (*delayed (lambda() (*parser <Number>)))
+                (*delayed (lambda() (*parser <InfixAdd>)))
                 (*delayed (lambda() (*parser <InfixNeg>)))
                 (*delayed (lambda() (*parser <InfixSub>)))
                 (*delayed (lambda() (*parser <InfixMul>)))
@@ -264,7 +273,6 @@
                 (*delayed (lambda() (*parser <InfixParen>)))
                 (*delayed (lambda() (*parser <InfixSexprEscape>)))
                 (*delayed (lambda() (*parser <InfixSymbol>)))
-                (*delayed (lambda() (*parser <InfixNumber>)))
                 (*disj 12)
         done))
         
