@@ -209,11 +209,22 @@
 (define <Vector>
         (new    (*parser (char #\#))
                 (*parser (char #\())
+                (*parser (char #\)))
+                (*caten 3)
+                (*pack-with (lambda (a b c)
+                    (vector)))
+                (*parser (char #\#))
+                (*parser (char #\())
                 (*delayed (lambda () <sexpr>))
+                (*parser (char #\space))
+                (*delayed (lambda () <sexpr>))
+                (*caten 2) *star
+                (*caten 2)
                 (*parser (char #\)))
                 (*caten 4)
                 (*pack-with (lambda (a b c d)
-                    (apply vector c)))
+                    (vector (append (list (car c)) (cadr c)))))
+                (*disj 2)
         done))
         
 (define <Quoted>
