@@ -64,6 +64,9 @@
 	        (*parser <VisibleSimpleChar>)
             (*disj 3)
             (*caten 2)
+            (*parser <end-of-input>)
+            (*caten 2)
+            (*pack-with (lambda (a b) a))   
             (*pack-with
                   (lambda (a b)
                     b
@@ -101,6 +104,9 @@
 	(new   (*parser <Fraction>) 
 	       (*parser <Integer>)
 		(*disj 2) 
+                (*parser <end-of-input>)
+                (*caten 2)
+                (*pack-with (lambda (a b) a))
 	     done))
 	     
 (define <StringVisibleChar> (range #\space #\xffff))
@@ -172,6 +178,9 @@
 	     
 (define <Symbol>
         (new    (*parser <SymbolChar>) *plus
+                ;(*parser <end-of-input>)
+                ;(*caten 2)
+                ;(*pack-with (lambda (a b) a))
                 (*pack (lambda (a)
                     (string->symbol (list->string a))))
         done))
@@ -234,13 +243,15 @@
                 (*delayed (lambda()  <sexpr>))
                 (*caten 2)
                 (*pack-with (lambda (a b)
-                     (string->char (list->string (list a b)))))
+                     (list 'quasiquote b)))
         done))
         
 (define <Unquoted>
         (new    (*parser (char #\,))
                 (*delayed (lambda()  <sexpr>))
                 (*caten 2)
+                (*pack-with (lambda (a b)
+                     (list 'unquote b)))                
         done))        
         
 (define <UnquotedAndSpliced>
@@ -248,6 +259,8 @@
                 (*parser (char #\@))
                 (*delayed (lambda()  <sexpr>))
                 (*caten 3)
+                (*pack-with (lambda (a b c)
+                     (list 'unquote-splicing c)))
         done))
         
 (define <InfixExpression>
@@ -377,20 +390,20 @@
 (define <sexpr>
 	(new    (*parser <Whitespace>) *star
 	        (*parser <Boolean>)
-	        (*parser <Number>)
-	        (*parser <Char>)
-		    (*parser <String>)
-		    (*parser <Symbol>)
-		    (*parser <ProperList>)
-		    (*parser <ImproperList>)
-		    (*parser <Vector>)
-		    (*parser <Quoted>)
-		    (*parser <QuasiQuoted>)
-		    (*parser <Unquoted>)
-		    (*parser <UnquotedAndSpliced>)
-		    (*parser <InfixExtension>)
-		    (*disj 13)
-		    (*parser <Whitespace>) *star
-		    (*caten 3)
-		    (*pack-with (lambda (a b c) b))
+                (*parser <Char>)
+                (*parser <Number>)
+                (*parser <Symbol>)
+                (*parser <String>)
+                (*parser <ProperList>)
+                (*parser <ImproperList>)
+                (*parser <Vector>)
+                (*parser <Quoted>)
+                (*parser <QuasiQuoted>)
+                (*parser <Unquoted>)
+                (*parser <UnquotedAndSpliced>)
+                (*parser <InfixExtension>)
+                (*disj 13)
+                (*parser <Whitespace>) *star
+                (*caten 3)
+                (*pack-with (lambda (a b c) b))
 	     done))
