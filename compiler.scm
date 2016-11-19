@@ -23,7 +23,7 @@
 
 (define <sexpr-comment>
   (new (*parser (word "#;"))
-       (*delayed (lambda () <sexpr>))
+       (*delayed (lambda () <sexpr-2>))
        (*caten 2)
        done))
        
@@ -243,12 +243,12 @@
 (define <Symbol>
         (new    (*parser <SymbolChar>) *plus
                 (*pack (lambda (a)
-                    (string->symbol (list->string a))))
+                    (string->symbol (string-downcase (list->string a)))))
         done))
 	     
 (define <ProperList>
         (new    (*parser (char #\())
-                (*delayed (lambda () <sexpr>)) *star
+                (*delayed (lambda () <sexpr-2>)) *star
                 (*parser (char #\)))
                 (*caten 3)
                 (*pack-with (lambda (a b c) b))
@@ -256,9 +256,9 @@
 
 (define <ImproperList>
         (new    (*parser (char #\())
-                (*delayed (lambda () <sexpr>)) *plus
+                (*delayed (lambda () <sexpr-2>)) *plus
                 (*parser (char #\.))
-                (*delayed (lambda () <sexpr>))
+                (*delayed (lambda () <sexpr-2>))
                 (*parser (char #\)))
                 (*caten 5)
                 (*pack-with (lambda (a b c d e)
@@ -269,31 +269,16 @@
 (define <Vector>
         (new    (*parser (char #\#))
                 (*parser (char #\())
-                (*parser (char #\)))
-                (*caten 3)
-                (*pack-with (lambda (a b c)
-                    (vector)))
-                (*parser (char #\#))
-                (*parser (char #\())
-                (*delayed (lambda () <sexpr>))
-                (*parser (char #\space))
-                (*delayed (lambda () <sexpr>))
-                (*caten 2) *star
-                (*pack(lambda (a)
-                    (map cadr a)))
-                (*caten 2)
-                (*pack-with (lambda (a b)
-                    (list a b)))
+                (*delayed (lambda () <sexpr-2>)) *star
                 (*parser (char #\)))
                 (*caten 4)
                 (*pack-with (lambda (a b c d)
-                    (apply vector (append (list (car c)) (cadr c)))))
-                (*disj 2)
+                    (apply vector c)))
         done))
         
 (define <Quoted>
         (new    (*parser (char #\'))
-                (*delayed (lambda()  <sexpr>))
+                (*delayed (lambda()  <sexpr-2>))
                 (*caten 2)
                 (*pack-with (lambda (a b)
                     `',b))
@@ -301,7 +286,7 @@
         
 (define <QuasiQuoted>
         (new    (*parser (char #\`))
-                (*delayed (lambda()  <sexpr>))
+                (*delayed (lambda()  <sexpr-2>))
                 (*caten 2)
                 (*pack-with (lambda (a b)
                      (list 'quasiquote b)))
@@ -309,7 +294,7 @@
         
 (define <Unquoted>
         (new    (*parser (char #\,))
-                (*delayed (lambda()  <sexpr>))
+                (*delayed (lambda()  <sexpr-2>))
                 (*caten 2)
                 (*pack-with (lambda (a b)
                      (list 'unquote b)))                
@@ -318,7 +303,7 @@
 (define <UnquotedAndSpliced>
         (new    (*parser (char #\,))
                 (*parser (char #\@))
-                (*delayed (lambda()  <sexpr>))
+                (*delayed (lambda()  <sexpr-2>))
                 (*caten 3)
                 (*pack-with (lambda (a b c)
                      (list 'unquote-splicing c)))
@@ -461,7 +446,7 @@
         
 (define <InfixSexprEscape>
         (new    (*delayed (lambda () <InfixPrefixExtensionPrefix>))
-                (*delayed (lambda () <sexpr>))
+                (*delayed (lambda () <sexpr-2>))
                 (*caten 2)
                 (*pack-with (lambda (a b) b))
         done))
@@ -505,7 +490,7 @@
                     b))
         done))
         
-(define <sexpr> (^<skipped*> 
+(define <sexpr-2> (^<skipped*> 
 	        (disj <Boolean> <Char> <Number> <Symbol> <String> <ProperList>
 	              <ImproperList> <Vector> <Quoted> <QuasiQuoted> <Unquoted>
 	              <UnquotedAndSpliced> <InfixExtension>)))
