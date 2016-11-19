@@ -26,13 +26,27 @@
        (*delayed (lambda () <sexpr>))
        (*caten 2)
        done))
+       
+(define <infix-comment>
+  (new (*parser (word "#;"))
+       (*delayed (lambda () <InfixExpression>))
+       (*caten 2)
+       done))
 
 (define <comment>
   (disj <line-comment>
 	<sexpr-comment>))
+	
+(define <comment-infix>
+  (disj <line-comment>
+	<infix-comment>))
 
 (define <skip>
   (disj <comment>
+	<whitespace>))
+	
+(define <skip-infix>
+  (disj <comment-infix>
 	<whitespace>))
 
 (define ^^<wrapped>
@@ -47,6 +61,8 @@
 	   done))))
 
 (define ^<skipped*> (^^<wrapped> (star <skip>)))
+
+(define ^<skipped-infix*> (^^<wrapped> (star <skip-infix>)))
 
 (define <Boolean>
 	(new    (*parser (char #\#))
@@ -382,16 +398,16 @@
         done))
         
 (define <InfixPow> 
-       (new     (*delayed (lambda() (^<skipped*> <InfixArrayGet>)))
+       (new     (*delayed (lambda() (^<skipped-infix*> <InfixArrayGet>)))
                 (*parser <PowerSymbol>)
-                (*delayed (lambda() (^<skipped*> <InfixArrayGet>)))
+                (*delayed (lambda() (^<skipped-infix*> <InfixArrayGet>)))
                 (*caten 2) *star
                 (*caten 2)
                 (*pack-with (infix-pack-r 'expt))
         done))
         
 (define <InfixArrayGet> 
-       (new     (*delayed (lambda() (^<skipped*> <InfixFuncall>)))
+       (new     (*delayed (lambda() (^<skipped-infix*> <InfixFuncall>)))
                 (*parser (char #\[))
                 (*delayed (lambda() <InfixExpression>))
                 (*parser (char #\]))
@@ -437,16 +453,17 @@
         
  (define <InfixParen>
         (new    (*parser (char #\())
-                (*delayed (lambda() <InfixExpression>))
+                (*delayed (lambda () <InfixExpression>))
                 (*parser (char #\)))
                 (*caten 3)
                 (*pack-with (lambda (a b c) b))
         done)) 
         
 (define <InfixSexprEscape>
-        (new    (*delayed (lambda() <InfixPrefixExtensionPrefix>))
+        (new    (*delayed (lambda () <InfixPrefixExtensionPrefix>))
                 (*delayed (lambda () <sexpr>))
                 (*caten 2)
+                (*pack-with (lambda (a b) b))
         done))
         
 (define <InfixNeg>
@@ -458,29 +475,26 @@
         done))
         
 (define <InfixLast>
-        (new    (*parser (^<skipped*> <InfixSexprEscape>))
-                (*parser (^<skipped*> <InfixParen>))
-                (*parser (^<skipped*> <InfixNeg>))
-                (*delayed (lambda() (^<skipped*> <Number>)))
-                (*delayed (lambda() (^<skipped*> <InfixSymbol>)))
+        (new    (*parser (^<skipped-infix*> <InfixSexprEscape>))
+                (*parser (^<skipped-infix*> <InfixParen>))
+                (*parser (^<skipped-infix*> <InfixNeg>))
+                (*delayed (lambda() (^<skipped-infix*> <Number>)))
+                (*delayed (lambda() (^<skipped-infix*> <InfixSymbol>)))
                 (*disj 5)
           done))
           
 (define <InfixExpression> <InfixSub>)
         
 (define <InfixSymbol>
-        (new    (*parser <SymbolChar>)
+        (new    (*parser <Symbol>)
                 (*parser (char #\+))
                 (*parser (char #\-))
                 (*parser (char #\*))
                 (*parser (char #\^))
                 (*parser (char #\/))
-                (*disj 5)
-                *diff *plus
                 (*parser (word "**"))
+                (*disj 6)
                 *diff
-                (*pack (lambda (a)
-                    (string->symbol (list->string a))))
         done))
         
 (define <InfixExtension>
