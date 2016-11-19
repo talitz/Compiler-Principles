@@ -339,22 +339,22 @@
                 (*disj 2)
         done))
         
-(define <InfixAdd> 
-       (new     (*delayed (lambda() <InfixSub>))
-                (*parser (char #\+))
-                (*delayed (lambda() <InfixSub>))
-                (*caten 2) *star
-                (*caten 2)
-                (*pack-with (infix-pack-l '+))
-        done))
-        
 (define <InfixSub> 
-       (new     (*delayed (lambda() <InfixDiv>))
+       (new     (*delayed (lambda() <InfixAdd>))
                 (*parser (char #\-))
-                (*delayed (lambda() <InfixDiv>))
+                (*delayed (lambda() <InfixAdd>))
                 (*caten 2) *star
                 (*caten 2)
                 (*pack-with (infix-pack-l '-))
+        done))
+        
+(define <InfixAdd> 
+       (new     (*delayed (lambda() <InfixDiv>))
+                (*parser (char #\+))
+                (*delayed (lambda() <InfixDiv>))
+                (*caten 2) *star
+                (*caten 2)
+                (*pack-with (infix-pack-l '+))
         done))
         
 (define <InfixDiv> 
@@ -466,7 +466,7 @@
                 (*disj 5)
           done))
           
-(define <InfixExpression> <InfixAdd>)
+(define <InfixExpression> <InfixSub>)
         
 (define <InfixSymbol>
         (new    (*parser <SymbolChar>)
