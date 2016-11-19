@@ -48,6 +48,11 @@
 (define <skip-infix>
   (disj <comment-infix>
 	<whitespace>))
+	
+(define times-4
+  (lambda (<p>)
+    (disj (times <p> 4) (times <p> 3) (times <p> 2) (times <p> 1))
+  ))
 
 (define ^^<wrapped>
   (lambda (<wrapper>)
@@ -63,6 +68,12 @@
 (define ^<skipped*> (^^<wrapped> (star <skip>)))
 
 (define ^<skipped-infix*> (^^<wrapped> (star <skip-infix>)))
+
+(define ^<prefer-end-of-input> 
+  (lambda (parser-list)
+      (disj (pack-with (apply disj (map (lambda (a) (caten a <end-of-input>)) parser-list)) (lambda (a b) a))
+               (apply disj parser-list))
+))
 
 (define <Boolean>
 	(new    (*parser (char #\#))
@@ -114,8 +125,10 @@
 	     
 (define <HexUnicodeChar>
 	(new    (*parser (char-ci #\x))
-	        (*parser <HexChar>) *star
+	        (*parser (times-4 <HexChar>))
 		    (*caten 2)
+		    (*parser <HexChar>)
+            *not-followed-by
 		    (*pack-with (lambda (a b)
 		       (integer->char (string->number (list->string b) 16))))
 	     done))
@@ -125,15 +138,11 @@
             (*parser <NamedChar>)
             (*parser <HexUnicodeChar>)
 	        (*parser <VisibleSimpleChar>)
+	        (*parser <HexChar>)
+            *not-followed-by
             (*disj 3)
             (*caten 2)
-            (*parser <end-of-input>)
-            (*caten 2)
-            (*pack-with (lambda (a b) a))   
-            (*pack-with
-                  (lambda (a b)
-                    b
-                  ))
+            (*pack-with (lambda (a b) b))
 	     done))
 	     
 (define <Natural>
@@ -167,12 +176,9 @@
 	(new   (*parser <Fraction>) 
 	       (*parser <Integer>)
 		(*disj 2) 
-                ;(*parser <end-of-input>)
-                ;(*caten 2)
-                ;(*pack-with (lambda (a b) a))
 	     done))
 	     
-(define <StringVisibleChar> (range #\space #\xffff))
+(define <StringVisibleChar> (diff <any-char> (char #\\)))
 	     
 (define <StringMetaChar>
 	(new    (*parser (char #\\)) 
@@ -197,7 +203,7 @@
 	(new    (*parser (char #\\))
             (*parser (char-ci #\x))
             (*caten 2)
-		    (*parser <HexChar>) *plus
+		    (*parser (times-4 <HexChar>))
 		    (*parser (char #\;))
             (*caten 3)
             (*pack-with (lambda (a b c)
@@ -410,15 +416,13 @@
                 (*delayed (lambda() <InfixArgList>))
                 (*parser (char #\)))
                 (*caten 3)
-                (*pack-with (lambda(a b c) 
-                                b))
                 (*parser <epsilon>)
                 (*disj 2)
                 (*caten 2)
                 (*pack-with (lambda(a b)
-                                (if (null? b) a     
-                                `(,a ,@b))))
-                                   
+                                (if (null? b) a
+                                (let ((b-values (cadr b)))
+                                  (if (null? b-values) `(,a) `(,a ,@b-values))))))
         done))
         
 (define <InfixArgList>
@@ -432,7 +436,7 @@
                 (*pack-with (lambda(a b)
                                  (cons a b)))
                             
-                (*parser <epsilon>)
+                (*parser (^<skipped-infix*> <epsilon>))
                 (*disj 2)
         done))
         
@@ -462,8 +466,8 @@
 (define <InfixLast>
         (new    (*parser (^<skipped-infix*> <InfixSexprEscape>))
                 (*parser (^<skipped-infix*> <InfixParen>))
-                (*parser (^<skipped-infix*> <InfixNeg>))
                 (*delayed (lambda() (^<skipped-infix*> <Number>)))
+                (*parser (^<skipped-infix*> <InfixNeg>))
                 (*delayed (lambda() (^<skipped-infix*> <InfixSymbol>)))
                 (*disj 5)
           done))
@@ -490,7 +494,10 @@
                     b))
         done))
         
-(define <sexpr-2> (^<skipped*> 
-	        (disj <Boolean> <Char> <Number> <Symbol> <String> <ProperList>
-	              <ImproperList> <Vector> <Quoted> <QuasiQuoted> <Unquoted>
-	              <UnquotedAndSpliced> <InfixExtension>)))
+(define <sexpr-2> 
+   (let* ((parsers (list <Boolean> <Char> <Number> <Symbol> <String> <ProperList>
+                    <ImproperList> <Vector> <Quoted> <QuasiQuoted> <Unquoted>
+                    <UnquotedAndSpliced> <InfixExtension>))
+          (parsers-skipped (map ^<skipped*> parsers)))
+    (^<prefer-end-of-input> parsers-skipped)))
+    
