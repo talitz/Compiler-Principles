@@ -323,14 +323,22 @@
 
 (define remove-last-elem (lambda (l) (reverse (cdr (reverse l)))))
 
-(define infix-pack-l (lambda (s)
-     (lambda (a b)
-        (if (null? b) a
-           (let* ((b-values (map cadr b)))
-             (fold-left (lambda (x y) `(,s ,x ,y)) a b-values))))
-        ))      
+(define char->symbol (lambda (a)
+    (cond ((equal? a #\+) '+)
+          ((equal? a #\-) '-)
+          ((equal? a #\/) '/)
+          ((equal? a #\*) '*))))
 
-(define infix-pack-r (lambda (s)
+(define infix-pack-l (lambda (a b)
+        (if (null? b) a
+           (fold-left (lambda (x y) `(,(char->symbol (car y)) ,x ,(cadr y))) a b))))      
+           
+(define infix-pack-s-l (lambda (s)
+    (lambda (a b)
+        (if (null? b) a
+           (fold-left (lambda (x y) `(,s ,x ,(cadr y))) a b)))))      
+
+(define infix-pack-s-r (lambda (s)
      (lambda (a b)
         (if (null? b) a
            (let* ((b-values (map cadr b))
@@ -350,40 +358,26 @@
                 (*disj 2)
         done))
         
-(define <InfixSub> 
-       (new     (*delayed (lambda() <InfixAdd>))
-                (*parser (char #\-))
-                (*delayed (lambda() <InfixAdd>))
-                (*caten 2) *star
-                (*caten 2)
-                (*pack-with (infix-pack-l '-))
-        done))
-        
-(define <InfixAdd> 
-       (new     (*delayed (lambda() <InfixDiv>))
+(define <InfixAddSub> 
+       (new     (*delayed (lambda() <InfixMulDiv>))
                 (*parser (char #\+))
-                (*delayed (lambda() <InfixDiv>))
+                (*parser (char #\-))
+                (*disj 2)
+                (*delayed (lambda() <InfixMulDiv>))
                 (*caten 2) *star
                 (*caten 2)
-                (*pack-with (infix-pack-l '+))
+                (*pack-with infix-pack-l)
         done))
         
-(define <InfixDiv> 
-       (new     (*delayed (lambda() <InfixMul>))
-                (*parser (char #\/))
-                (*delayed (lambda() <InfixMul>))
-                (*caten 2) *star
-                (*caten 2)
-                (*pack-with (infix-pack-l '/))
-        done))
-        
-(define <InfixMul> 
+(define <InfixMulDiv> 
        (new     (*delayed (lambda() <InfixPow>))
                 (*parser (char #\*))
+                (*parser (char #\/))
+                (*disj 2)
                 (*delayed (lambda() <InfixPow>))
                 (*caten 2) *star
                 (*caten 2)
-                (*pack-with (infix-pack-l '*))
+                (*pack-with infix-pack-l)
         done))
         
 (define <PowerSymbol>
@@ -398,7 +392,7 @@
                 (*delayed (lambda() (^<skipped-infix*> <InfixArrayGet>)))
                 (*caten 2) *star
                 (*caten 2)
-                (*pack-with (infix-pack-r 'expt))
+                (*pack-with (infix-pack-s-r 'expt))
         done))
         
 (define <InfixArrayGet> 
@@ -411,7 +405,7 @@
                 (*parser <epsilon>)
                 (*disj 2)
                 (*caten 2) 
-                (*pack-with (infix-pack-l 'vector-ref))
+                (*pack-with (infix-pack-s-l 'vector-ref))
         done))
         
  (define <InfixFuncall>
@@ -476,7 +470,7 @@
                 (*disj 5)
           done))
           
-(define <InfixExpression> <InfixSub>)
+(define <InfixExpression> <InfixAddSub>)
         
 (define <InfixSymbol>
         (new    (*parser <Symbol>)
