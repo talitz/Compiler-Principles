@@ -23,7 +23,7 @@
 
 (define <sexpr-comment>
   (new (*parser (word "#;"))
-       (*delayed (lambda () <sexpr-2>))
+       (*delayed (lambda () <sexpr>))
        (*caten 2)
        done))
        
@@ -176,6 +176,10 @@
 	(new   (*parser <Fraction>) 
 	       (*parser <Integer>)
 		(*disj 2) 
+		(*parser (range #\a #\z))
+		(*parser (range #\A #\Z))
+		(*disj 2)
+		*not-followed-by
 	     done))
 	     
 (define <StringVisibleChar> (diff <any-char> (char #\\)))
@@ -254,7 +258,7 @@
 	     
 (define <ProperList>
         (new    (*parser (char #\())
-                (*delayed (lambda () <sexpr-2>)) *star
+                (*delayed (lambda () <sexpr>)) *star
                 (*parser (char #\)))
                 (*caten 3)
                 (*pack-with (lambda (a b c) b))
@@ -262,9 +266,9 @@
 
 (define <ImproperList>
         (new    (*parser (char #\())
-                (*delayed (lambda () <sexpr-2>)) *plus
+                (*delayed (lambda () <sexpr>)) *plus
                 (*parser (char #\.))
-                (*delayed (lambda () <sexpr-2>))
+                (*delayed (lambda () <sexpr>))
                 (*parser (char #\)))
                 (*caten 5)
                 (*pack-with (lambda (a b c d e)
@@ -275,7 +279,7 @@
 (define <Vector>
         (new    (*parser (char #\#))
                 (*parser (char #\())
-                (*delayed (lambda () <sexpr-2>)) *star
+                (*delayed (lambda () <sexpr>)) *star
                 (*parser (char #\)))
                 (*caten 4)
                 (*pack-with (lambda (a b c d)
@@ -284,7 +288,7 @@
         
 (define <Quoted>
         (new    (*parser (char #\'))
-                (*delayed (lambda()  <sexpr-2>))
+                (*delayed (lambda()  <sexpr>))
                 (*caten 2)
                 (*pack-with (lambda (a b)
                     `',b))
@@ -292,7 +296,7 @@
         
 (define <QuasiQuoted>
         (new    (*parser (char #\`))
-                (*delayed (lambda()  <sexpr-2>))
+                (*delayed (lambda()  <sexpr>))
                 (*caten 2)
                 (*pack-with (lambda (a b)
                      (list 'quasiquote b)))
@@ -300,7 +304,7 @@
         
 (define <Unquoted>
         (new    (*parser (char #\,))
-                (*delayed (lambda()  <sexpr-2>))
+                (*delayed (lambda()  <sexpr>))
                 (*caten 2)
                 (*pack-with (lambda (a b)
                      (list 'unquote b)))                
@@ -309,7 +313,7 @@
 (define <UnquotedAndSpliced>
         (new    (*parser (char #\,))
                 (*parser (char #\@))
-                (*delayed (lambda()  <sexpr-2>))
+                (*delayed (lambda()  <sexpr>))
                 (*caten 3)
                 (*pack-with (lambda (a b c)
                      (list 'unquote-splicing c)))
@@ -450,7 +454,7 @@
         
 (define <InfixSexprEscape>
         (new    (*delayed (lambda () <InfixPrefixExtensionPrefix>))
-                (*delayed (lambda () <sexpr-2>))
+                (*delayed (lambda () <sexpr>))
                 (*caten 2)
                 (*pack-with (lambda (a b) b))
         done))
@@ -494,10 +498,11 @@
                     b))
         done))
         
-(define <sexpr-2> 
+(define <sexpr> 
    (let* ((parsers (list <Boolean> <Char> <Number> <Symbol> <String> <ProperList>
                     <ImproperList> <Vector> <Quoted> <QuasiQuoted> <Unquoted>
                     <UnquotedAndSpliced> <InfixExtension>))
           (parsers-skipped (map ^<skipped*> parsers)))
-    (^<prefer-end-of-input> parsers-skipped)))
+         (apply disj parsers-skipped)
+    ))
     
