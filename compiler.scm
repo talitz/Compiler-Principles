@@ -132,6 +132,26 @@
 		    (*pack-with (lambda (a b)
 		       (integer->char (string->number (list->string b) 16))))
 	     done))
+	     
+(define <SymbolChar>
+        (new    (*parser (range #\0 #\9))
+                (*parser (range #\a #\z))
+                (*parser (range #\A #\Z))
+                (*parser (char #\!))
+                (*parser (char #\$))
+                (*parser (char #\^))
+                (*parser (char #\*))
+                (*parser (char #\-))
+                (*parser (char #\_))
+                (*parser (char #\=))
+                (*parser (char #\+))
+                (*parser (char #\>))
+                (*parser (char #\<))
+                (*parser (char #\?))
+                (*parser (char #\/))
+                (*parser (char #\:))
+                (*disj 16)
+        done))	    
 
 (define <Char>
 	(new    (*parser <CharPrefix>)
@@ -175,11 +195,12 @@
 (define <Number>
 	(new   (*parser <Fraction>) 
 	       (*parser <Integer>)
-		(*disj 2) 
-		(*parser (range #\a #\z))
-		(*parser (range #\A #\Z))
-		(*disj 2)
-		*not-followed-by
+	       (*disj 2) 
+	       (*parser <SymbolChar>)
+	       (*parser <Natural>)
+	       *diff
+	       *not-followed-by
+		(*pack (lambda (a) (display a) (display 'tal) a))
 	     done))
 	     
 (define <StringVisibleChar> (diff <any-char> (char #\\)))
@@ -230,25 +251,6 @@
 		       (list->string b)))
 	     done))	
 	     
-(define <SymbolChar>
-        (new    (*parser (range #\0 #\9))
-                (*parser (range #\a #\z))
-                (*parser (range #\A #\Z))
-                (*parser (char #\!))
-                (*parser (char #\$))
-                (*parser (char #\^))
-                (*parser (char #\*))
-                (*parser (char #\-))
-                (*parser (char #\_))
-                (*parser (char #\=))
-                (*parser (char #\+))
-                (*parser (char #\>))
-                (*parser (char #\<))
-                (*parser (char #\?))
-                (*parser (char #\/))
-                (*parser (char #\:))
-                (*disj 16)
-        done))	    
 	     
 (define <Symbol>
         (new    (*parser <SymbolChar>) *plus
@@ -464,7 +466,7 @@
 (define <InfixLast>
         (new    (*parser (^<skipped-infix*> <InfixSexprEscape>))
                 (*parser (^<skipped-infix*> <InfixParen>))
-                (*delayed (lambda() (^<skipped-infix*> <Number>)))
+                (*delayed (lambda() (^<skipped-infix*> <InfixNumber>)))
                 (*parser (^<skipped-infix*> <InfixNeg>))
                 (*delayed (lambda() (^<skipped-infix*> <InfixSymbol>)))
                 (*disj 5)
@@ -473,16 +475,27 @@
 (define <InfixExpression> <InfixAddSub>)
         
 (define <InfixSymbol>
-        (new    (*parser <Symbol>)
+        (new    (*parser <SymbolChar>) 
                 (*parser (char #\+))
                 (*parser (char #\-))
                 (*parser (char #\*))
                 (*parser (char #\^))
                 (*parser (char #\/))
                 (*parser (word "**"))
-                (*disj 6)
-                *diff
+                (*disj 6) *diff *plus
+                (*pack (lambda (a)
+                    (string->symbol (string-downcase (list->string a)))))
         done))
+        
+(define <InfixNumber>
+	(new   (*parser <Fraction>) 
+	       (*parser <Integer>)
+	       (*disj 2) 
+	       (*parser <InfixSymbol>)
+	       (*parser <Natural>)
+	       *diff *not-followed-by
+		(*pack (lambda (a) (display a) (display 'tal) a))
+	     done))
         
 (define <InfixExtension>
         (new    (*parser <InfixPrefixExtensionPrefix>)
