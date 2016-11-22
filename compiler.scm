@@ -200,7 +200,6 @@
 	       (*parser <Natural>)
 	       *diff
 	       *not-followed-by
-		(*pack (lambda (a) (display a) (display 'tal) a))
 	     done))
 	     
 (define <StringVisibleChar> (diff <any-char> (char #\\)))
@@ -494,7 +493,6 @@
 	       (*parser <InfixSymbol>)
 	       (*parser <Natural>)
 	       *diff *not-followed-by
-		(*pack (lambda (a) (display a) (display 'tal) a))
 	     done))
         
 (define <InfixExtension>
