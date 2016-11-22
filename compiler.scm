@@ -69,12 +69,6 @@
 
 (define ^<skipped-infix*> (^^<wrapped> (star <skip-infix>)))
 
-(define ^<prefer-end-of-input> 
-  (lambda (parser-list)
-      (disj (pack-with (apply disj (map (lambda (a) (caten a <end-of-input>)) parser-list)) (lambda (a b) a))
-               (apply disj parser-list))
-))
-
 (define <Boolean>
 	(new    (*parser (char #\#))
 	        (*parser (char-ci #\t))
@@ -388,12 +382,43 @@
         done))
         
 (define <InfixPow> 
-       (new     (*delayed (lambda() (^<skipped-infix*> <InfixArrayGet>)))
+       (new     (*delayed (lambda() (^<skipped-infix*> <InfixFuncArray>)))
                 (*parser <PowerSymbol>)
-                (*delayed (lambda() (^<skipped-infix*> <InfixArrayGet>)))
+                (*delayed (lambda() (^<skipped-infix*> <InfixFuncArray>)))
                 (*caten 2) *star
                 (*caten 2)
                 (*pack-with (infix-pack-s-r 'expt))
+        done))
+        
+(define <InfixFuncArray>
+       (new     (*delayed (lambda() <InfixLast>))
+                (*parser (char #\[))
+                (*delayed (lambda() <InfixExpression>))
+                (*parser (char #\]))
+                (*caten 3) 
+                (*pack-with (lambda (a b c) (cons 'arr b)))
+                (*parser (char #\())
+                (*delayed (lambda() <InfixArgList>))
+                (*parser (char #\)))
+                (*caten 3) 
+                (*pack-with (lambda (a b c) (cons 'func b)))
+                (*disj 2)
+                *star
+                (*caten 2) 
+                (*pack-with (lambda (a b)
+                     (fold-left (lambda (x y) 
+                        ;(display x)
+                        ;(display 'amit)
+                        ;(display y)
+                        ;(display 'tal)
+                        ;(display (cdr y))
+                        ;(display 'elio)
+                        (let ((y-op (car y))
+                              (y (cdr y)))
+                        (if (eq? y-op 'arr) 
+                           `(vector-ref ,x ,y)
+                           `(,x ,@y))))
+                        a b)))
         done))
         
 (define <InfixArrayGet> 
@@ -415,13 +440,13 @@
                 (*delayed (lambda() <InfixArgList>))
                 (*parser (char #\)))
                 (*caten 3)
+                *star
                 (*parser <epsilon>)
                 (*disj 2)
                 (*caten 2)
-                (*pack-with (lambda(a b)
-                                (if (null? b) a
-                                (let ((b-values (cadr b)))
-                                  (if (null? b-values) `(,a) `(,a ,@b-values))))))
+                (*pack-with (lambda (a b)
+                    (if (null? b) a
+                    (fold-left (lambda (x y) `(,x ,@(cadr y))) a b))))      
         done))
         
 (define <InfixArgList>
@@ -456,7 +481,7 @@
         
 (define <InfixNeg>
         (new    (*parser (char #\-))
-                (*delayed (lambda () <InfixArrayGet>))
+                (*delayed (lambda () <InfixFuncArray>))
                 (*caten 2)
                 (*pack-with (lambda (a b)
                     `(- ,b)))
