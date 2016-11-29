@@ -32,12 +32,12 @@
 (define ?
   (lambda (name . guards)
     (let ((guard?
-	   (lambda (e)
-	     (andmap 
-	      (lambda (g?) (g? e))
-	      guards))))
+       (lambda (e)
+         (andmap
+          (lambda (g?) (g? e))
+          guards))))
       (lambda (value)
-	(if (guard? value)
+    (if (guard? value)
 	    (list value)
 	    #f)))))
 

@@ -1,4 +1,5 @@
 (load "./pc.scm")
+(load "./pattern-matcher.scm")
 
 (define <whitespace>
   (const
@@ -535,4 +536,112 @@
           (parsers-skipped (map ^<skipped*> parsers)))
          (apply disj parsers-skipped)
     ))
-    
+
+(define const-pattern-rule
+     (lambda(pred)
+        (pattern-rule
+                (lambda (exp) (if (pred exp) (list exp) #f))
+               (lambda(x) (list 'const x)))))
+
+
+(define _nil (const-pattern-rule null?))
+(define _boolean (const-pattern-rule boolean?))
+(define _character (const-pattern-rule char?))
+(define _number (const-pattern-rule number?))
+(define _string (const-pattern-rule string?))
+(define _vector (const-pattern-rule vector?))
+(define _void (const-pattern-rule (lambda (x) (equal? (void) x))))
+
+(define _quote
+         (pattern-rule
+              (lambda(exp) (and (list? exp) (equal? (car exp) 'quote)))
+              (lambda(x) (list 'const (cadr exp)))))
+
+(define _const
+     (compose-patterns
+          _nil
+          _vector
+          _boolean
+          _character
+          _number
+          _string
+          _quote
+          _void
+            ))
+
+(define *reserved-words*
+    '(and begin cond define do else if lambda
+    let let* letrec or quasiquote unquote
+    unquote-splicing quote set!))
+
+(define _var
+        (pattern-rule
+               (lambda (exp) (if (and (symbol? exp) (not (member exp *reserved-words*))) (list exp) #f))
+               (lambda(x) (list 'var x))))
+
+(define _if
+   (compose-patterns
+     (pattern-rule
+          `(if ,(? 'test) ,(? 'then) ,(? 'else))
+               (lambda (test then else)
+               `(if3 ,(parse test) ,(parse then) ,(parse else))))
+     (pattern-rule
+          `(if ,(? 'test) ,(? 'then))
+               (lambda (test then)
+               `(if3 ,(parse test) ,(parse then) ,(parse (void)))))))
+
+(define _disjunction
+     (pattern-rule
+          `(or . ,(? 'bodies))
+               (lambda (bodies)
+               (cons 'or (map parse bodies)))))
+
+(define improper-list-last
+        (lambda(l)
+            (if (pair? l) (improper-list-last (cdr l)) l)))
+
+(define improper-list-remove-last
+        (lambda(l)
+            (if (pair? l)
+                  (cons (car l) (improper-list-remove-last (cdr l)))
+                    '())))
+
+(define _lambda
+     (pattern-rule
+          `(lambda ,(? 'params) . ,(? 'bodies))
+               (lambda (params bodies)
+                         (let ((bodies (map parse bodies))
+                              (new-params (improper-list-remove-last params)))
+                             (cond ((list? params) `(lambda-simple ,params ,@bodies))
+                                   ((pair? params) `(lambda-opt ,new-params ,(improper-list-last params) ,@bodies))
+                                   (else `(lambda-var ,params ,@bodies)))))))
+
+(define _define
+      (pattern-rule
+          `(define ,(? 'var) ,(? 'def))
+               (lambda (var def)
+                  (if (pair? var)
+                  (let ((exp (parse `(lambda ,(cdr var) ,def))))
+                    `(define ,(parse (car var)) ,exp))
+                  `(define ,(parse var) ,(parse def))))))
+
+(define _application
+      (pattern-rule
+          `(,(? 'func) . ,(? 'params))
+               (lambda (func params)
+                  (let ((func (parse func))
+                        (params (map parse params)))
+                        `(applic ,func ,params)))))
+
+(define parse
+ (let ((run
+  (compose-patterns
+     _const
+     _var
+     _if
+     _disjunction
+     _lambda
+     _define
+     _application)))
+  (lambda (sexpr)
+        (run sexpr (lambda () '(this is what happens when the tag parser fails to match the input))))))
