@@ -407,13 +407,7 @@
                 *star
                 (*caten 2) 
                 (*pack-with (lambda (a b)
-                     (fold-left (lambda (x y) 
-                        ;(display x)
-                        ;(display 'amit)
-                        ;(display y)
-                        ;(display 'tal)
-                        ;(display (cdr y))
-                        ;(display 'elio)
+                     (fold-left (lambda (x y)
                         (let ((y-op (car y))
                               (y (cdr y)))
                         (if (eq? y-op 'arr) 
@@ -627,12 +621,13 @@
 
 (define _define
       (pattern-rule
-          `(define ,(? 'var) ,(? 'def))
+          `(define ,(? 'var) . ,(? 'def))
                (lambda (var def)
                   (if (pair? var)
-                  (let ((exp (parse `(lambda ,(cdr var) ,def))))
+                  (let ((exp (parse `(lambda ,(cdr var) ,@def))))
                     `(def ,(parse (car var)) ,exp))
-                    `(def ,(parse var) ,(parse def))))))
+                    (let ((def (parse `(begin ,@def))))
+                      `(def ,(parse var) ,def))))))
 
 (define _application
       (pattern-rule
