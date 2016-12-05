@@ -608,16 +608,28 @@
                   (cons (car l) (improper-list-remove-last (cdr l)))
                     '())))
 
+(define is-distinct
+    (lambda (x)
+       (letrec ((remove-duplicates
+          (lambda (l)
+            (cond ((null? l) '())
+            ((member (car l) (cdr l)) (remove-duplicates (cdr l)))
+            (else (cons (car l) (remove-duplicates (cdr l))))))))
+
+            (equal? (length (remove-duplicates x)) (length x)))))
+
 (define _lambda
      (pattern-rule
           `(lambda ,(? 'params) . ,(? 'bodies))
                (lambda (params bodies)
-                         (let ((bodies (map parse bodies))
+                         (if (and (list? params) (not (is-distinct params)))
+                            (error 'parse "Repeating lambda params!")
+                            (let ((bodies (map parse bodies))
                               (new-params (improper-list-remove-last params))
                               (seq (parse `(begin ,@bodies))))
                                 (cond ((list? params) `(lambda-simple ,params ,seq))
                                    ((pair? params) `(lambda-opt ,new-params ,(improper-list-last params) ,seq))
-                                   (else `(lambda-var ,params ,seq)))))))
+                                   (else `(lambda-var ,params ,seq))))))))
 
 (define _define
       (pattern-rule
@@ -643,18 +655,25 @@
       (pattern-rule
           `(cond . ,(? 'bodies))
                (lambda (bodies)
-                    (cond ((null? bodies) (parse (void)))
-                          ((eq? (caar bodies) 'else)
-                              (parse `(begin ,@(cdar bodies))))
-                     (else
-                             (parse `(if ,(caar bodies) (begin ,@(cdar bodies)) (cond ,@(cdr bodies)))))))))
+                    (cond ((null? bodies) (error 'parse "Unknown form: (cond)"))
+                          ((eq? (caar bodies) 'else) (parse `(begin ,@(cdar bodies))))
+                          ((eq? (length bodies) 1) (parse `(if ,(caar bodies) (begin ,@(cdar bodies)))))
+                          (else (parse `(if ,(caar bodies) (begin ,@(cdar bodies)) (cond ,@(cdr bodies)))))))))
+
+(define remove-seq
+   (lambda (bodies)
+       (cond ((null? bodies) bodies)
+             ((and (list? (car bodies)) (equal? (caar bodies) 'seq))
+                 (append (car (cdar bodies)) (remove-seq (cdr bodies))))
+             (else (cons (car bodies) (remove-seq (cdr bodies)))))))
 
 
 (define _begin
       (pattern-rule
           `(begin . ,(? 'bodies))
                (lambda (bodies)
-                  (let ((bodies (map parse bodies)))
+                  (let* ((bodies (map parse bodies))
+                         (bodies (remove-seq bodies)))
                     (cond ((null? bodies) (parse (void)))
                          ((eq? (length bodies) 1) (car bodies))
                          (else `(seq ,bodies)))))))
