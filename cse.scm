@@ -12,8 +12,10 @@
              ((not (list? expr)) expr)
              (else
                  (let* ((x (cse-helper (car expr) replaced-mems))
-                       (rec-res (cons x (cse-helper (cdr expr) replaced-mems))))
-                    (cse-x-handler x rec-res replaced-mems))))))
+                        (rec-res (cse-helper (cdr expr) replaced-mems))
+                        (new-x (replace-by-vars x (unbox replaced-mems)))
+                        (new-rec (cons new-x rec-res)))
+                    (cse-x-handler new-x new-rec replaced-mems))))))
 
 (define cse-x-handler
    (lambda (x expr replaced-mems)
@@ -28,14 +30,20 @@
     (lambda (source target replacement)
         (if (eq? source target)
             replacement
-            (if (null? source)
-                '()
+            (if (or (null? source) (const? source))
+                source
                 (if (equal? target (car source))
                     (cons replacement (replace-rec (cdr source) target replacement))
                     (if (list? (car source))
                             (cons (replace-rec (car source) target replacement) (replace-rec (cdr source) target replacement))
                             (cons (car source) (replace-rec (cdr source) target replacement))))))))
 
+(define replace-by-vars
+    (lambda (x replaced-mems)
+        (if (null? replaced-mems)
+            x
+            (let ((new-x (replace-rec x (cadar replaced-mems) (caar replaced-mems))))
+                (replace-by-vars new-x (cdr replaced-mems))))))
 
 (define replace-mem
      (lambda (elem expr replaced-mems)
