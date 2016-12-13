@@ -3,8 +3,8 @@
        (let* ((replaced-mems (box (list)))
               (res-expr (cse-helper expr replaced-mems)))
           (cond ((eq? (length (unbox replaced-mems)) 0) res-expr)
-                ((eq? (length (unbox replaced-mems)) 1) `(let (,(unbox replaced-mems)) ,res-expr))
-                (else `(let* (,(unbox replaced-mems)) ,res-expr))))))
+                ((eq? (length (unbox replaced-mems)) 1) `(let ,(unbox replaced-mems) ,res-expr))
+                (else `(let* ,(unbox replaced-mems) ,res-expr))))))
 
 (define cse-helper
    (lambda (expr replaced-mems)
@@ -12,10 +12,15 @@
              ((not (list? expr)) expr)
              (else
                  (let* ((x (cse-helper (car expr) replaced-mems))
+                        (expr (replace-by-vars expr (unbox replaced-mems)))
                         (rec-res (cse-helper (cdr expr) replaced-mems))
-                        (new-x (replace-by-vars x (unbox replaced-mems)))
-                        (new-rec (cons new-x rec-res)))
-                    (cse-x-handler new-x new-rec replaced-mems))))))
+                        (x (replace-by-vars x (unbox replaced-mems)))
+                        (rec (replace-by-vars (cons x rec-res) (unbox replaced-mems))))
+                    ;(display x)
+                    ;(display 'tal)
+                    ;(display rec)
+                    ;(display 'amit)
+                    (cse-x-handler x rec replaced-mems))))))
 
 (define cse-x-handler
    (lambda (x expr replaced-mems)
@@ -24,7 +29,7 @@
              ((member-rec? x (cdr expr)) (replace-mem x expr replaced-mems))
              (else (cse-x-handler (cdr x) (cse-x-handler (car x) expr replaced-mems) replaced-mems)))))
 
-(define const? (lambda (x) (not (list? x))))
+(define const? (lambda (x) (or (not (list? x)) (eq? (car x) 'quote))))
 
 (define replace-rec
     (lambda (source target replacement)
@@ -47,8 +52,8 @@
 
 (define replace-mem
      (lambda (elem expr replaced-mems)
-         (let* ((name (gensym)))
-            (set-box! replaced-mems (cons (list name elem) (unbox replaced-mems)))
+         (let* ((name (symbol->string (gensym))))
+            (set-box! replaced-mems (append (unbox replaced-mems) (list (list name elem))))
             (replace-rec expr elem name))))
 
 (define member-rec?
