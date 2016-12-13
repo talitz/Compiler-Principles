@@ -2,8 +2,6 @@
     (lambda (expr)
        (let* ((replaced-mems (box (list)))
               (res-expr (cse-helper expr replaced-mems)))
-              (display replaced-mems)
-              (display 'tal)
           (cond ((eq? (length (unbox replaced-mems)) 0) res-expr)
                 ((eq? (length (unbox replaced-mems)) 1) `(let (,(unbox replaced-mems)) ,res-expr))
                 (else `(let* (,(unbox replaced-mems)) ,res-expr))))))
