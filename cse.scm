@@ -3,7 +3,8 @@
 (define cse
     (lambda (expr)
        (let* ((replaced-mems (box (list)))
-              (res-expr (cse-helper expr replaced-mems)))
+              (res-expr (cse-helper expr replaced-mems))
+              (final-expr (cse-replaced-mems expr replaced-mems)))
           (cond ((eq? (length (unbox replaced-mems)) 0) res-expr)
                 ((eq? (length (unbox replaced-mems)) 1) `(let ,(unbox replaced-mems) ,res-expr))
                 (else `(let* ,(unbox replaced-mems) ,res-expr))))))
@@ -30,6 +31,18 @@
              ((const? x) expr)
              ((member-rec? x (cdr expr)) (replace-mem x expr replaced-mems))
              (else (cse-x-handler (cdr x) (cse-x-handler (car x) expr replaced-mems) replaced-mems)))))
+
+(define cse-replaced-mems
+   (lambda (expr replaced-mems)
+       ;(display (unbox replaced-mems))
+       (let* ((values (map cadr (unbox replaced-mems)))
+              (temp-replaced-mems (box (list)))
+              (x (cse-helper values temp-replaced-mems))
+              (new-replaced-mems (append (unbox temp-replaced-mems)
+                                 (replace-by-vars (unbox replaced-mems) (unbox temp-replaced-mems))))
+              (expr (replace-by-vars expr new-replaced-mems)))
+              (set-box! replaced-mems new-replaced-mems)
+              expr)))
 
 (define const? (lambda (x) (or (not (list? x)) (eq? (car x) 'quote))))
 
