@@ -1,3 +1,5 @@
+(print-gensym #f)
+
 (define cse
     (lambda (expr)
        (let* ((replaced-mems (box (list)))
@@ -52,7 +54,7 @@
 
 (define replace-mem
      (lambda (elem expr replaced-mems)
-         (let* ((name (symbol->string (gensym))))
+         (let* ((name (gensym)))
             (set-box! replaced-mems (append (unbox replaced-mems) (list (list name elem))))
             (replace-rec expr elem name))))
 
