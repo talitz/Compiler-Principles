@@ -838,3 +838,58 @@
      )))
   (lambda (sexpr)
         (run sexpr (lambda () "Exception in parser")))))
+
+
+(define eliminate-nested-defines-helper
+       (lambda(parsed-expr ret-ds+es)
+            (if (null? parsed-expr) (ret-ds+es `() `())
+                (eliminate-nested-defines-helper (cdr parsed-expr)
+                     (lambda (ds es)
+                           (cond ((eq? (caar parsed-expr) 'def) (ret-ds+es (cons (car parsed-expr) ds) es))
+                                 ((eq? (caar parsed-expr) 'seq) (eliminate-nested-defines-helper (cadar parsed-expr)
+                                                                  (lambda(ds1 es1)
+                                                                          (ret-ds+es (append ds1 ds) (append es1 es)))))
+                                 (else (ret-ds+es ds (cons (car parsed-expr) es)))))))))
+
+(define is-lambda?
+      (lambda(e) (or (eq? e 'lambda-simple) (eq? e 'lambda-var) (eq? e 'lambda-opt))))
+
+
+(define eliminate-nested-defines
+      (lambda(parsed-expr)
+          (cond ((null? parsed-expr) `())
+                ((list? (car parsed-expr))
+                   (cons (eliminate-nested-defines (car parsed-expr))
+                         (eliminate-nested-defines (cdr parsed-expr))))
+                ((is-lambda? (car parsed-expr))
+                    (eliminate-nested-defines-helper (cddr parsed-expr)
+                              (lambda(ds es)
+                                (if (null? ds)
+                                   parsed-expr
+                                   (let* ((vars (map cadadr ds))
+                                          (vals (map caddr ds))
+                                          (lambda-def (car parsed-expr))
+                                          (args (cadr parsed-expr))
+                                          (applic-args (map (lambda (x) '(const #f)) vars))
+                                          (let-sets (map (lambda (var val) `(set (var ,var) ,val)) vars vals))
+                                          (let-body (append let-sets es)))
+                                      `(,lambda-def ,args
+                                         (applic (lambda-simple ,vars (seq ,let-body)) ,applic-args)))))))
+                (else (cons (car parsed-expr) (eliminate-nested-defines (cdr parsed-expr)))))))
+
+(define applic-lambda-nil?
+   (lambda(e)
+   (and (eq? (car e) 'applic)
+        (is-lambda? (caadr e))
+        (null? (cadadr e)))))
+
+(define remove-applic-lambda-nil
+      (lambda(parsed-expr)
+          (cond ((null? parsed-expr) `())
+                ((applic-lambda-nil? parsed-expr)
+                   (display 'tal)
+                   (car (cddadr parsed-expr)))
+                ((list? (car parsed-expr))
+                   (cons (remove-applic-lambda-nil (car parsed-expr))
+                         (remove-applic-lambda-nil (cdr parsed-expr))))
+                (else (cons (car parsed-expr) (remove-applic-lambda-nil (cdr parsed-expr)))))))
