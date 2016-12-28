@@ -893,3 +893,87 @@
                    (cons (remove-applic-lambda-nil (car parsed-expr))
                          (remove-applic-lambda-nil (cdr parsed-expr))))
                 (else (cons (car parsed-expr) (remove-applic-lambda-nil (cdr parsed-expr)))))))
+
+(define index
+     (lambda(var lst)
+        (letrec ((index-helper
+           (lambda(var lst counter)
+             (cond ((null? lst) -1)
+                   ((eq? (car lst) var) counter)
+                   (else (index-helper var (cdr lst) (+ counter 1)))))))
+            (index-helper var lst 0))))
+
+(define find-var-in-acc
+    (lambda(var acc)
+      (find-var-in-acc-helper var acc 0)))
+
+(define find-var-in-acc-helper
+    (lambda(var acc counter)
+       (if (null? acc)
+          `(fvar ,var)
+          (let ((minor (index var (car acc))))
+             (cond ((eq? minor -1) (find-var-in-acc-helper var (cdr acc) (+ counter 1)))
+                   (else (if (eq? counter 0)
+                      `(pvar ,var ,minor)
+                      `(bvar ,var ,(- counter 1) ,minor))))))))
+
+(define pe->lex-pe
+      (lambda(parsed-expr)
+          (pe->lex-pe-helper parsed-expr '())))
+
+(define pe->lex-pe-helper
+      (lambda(parsed-expr acc)
+          (cond ((or (not (list? parsed-expr)) (null? parsed-expr)) parsed-expr)
+                ((list? (car parsed-expr))
+                  (cons (pe->lex-pe-helper (car parsed-expr) acc) (pe->lex-pe-helper (cdr parsed-expr) acc)))
+                ((is-lambda? (car parsed-expr))
+                   (let ((lambda-def (car parsed-expr))
+                         (params (cadr parsed-expr))
+                         (body (caddr parsed-expr)))
+                       `(,lambda-def ,params ,(pe->lex-pe-helper body (cons params acc)))))
+                ((eq? (car parsed-expr) 'var) (find-var-in-acc (cadr parsed-expr) acc))
+                (else (cons (car parsed-expr) (pe->lex-pe-helper (cdr parsed-expr) acc))))))
+
+(define last
+   (lambda(lst)
+      (if (eq? (length lst) 1)
+         (car lst)
+         (last (cdr lst)))))
+
+(define replace-last
+   (lambda(lst var)
+      (if (eq? (length lst) 1)
+         (list var)
+         (cons (car lst) (replace-last (cdr lst) var)))))
+
+(define annotate-last-elem
+    (lambda(elem)
+       (cond ((eq? (car elem) 'applic) (cons 'tc-applic (cdr elem)))
+             ((eq? (car elem) 'if3)
+                (let ((condition (cadr elem))
+                      (dit (caddr elem))
+                      (dif (cadddr elem)))
+                    `(if3  ,condition ,(annotate-last-elem dit) ,(annotate-last-elem dif))))
+             ((member (car elem) '(or seq))
+                (let* ((operator (car elem))
+                       (body (cadr elem))
+                       (new-last (annotate-last-elem (last body)))
+                       (new-body (replace-last body new-last)))
+                   `(,operator ,new-body)))
+             (else elem))))
+
+(define annotate-tc
+      (lambda(parsed-expr)
+          (cond ((or (not (list? parsed-expr)) (null? parsed-expr)) parsed-expr)
+                ((list? (car parsed-expr))
+                  (cons (annotate-tc (car parsed-expr)) (annotate-tc (cdr parsed-expr))))
+                ((is-lambda? (car parsed-expr))
+                    (let* ((lambda-def (car parsed-expr))
+                           (params (cadr parsed-expr))
+                           (body (annotate-tc (caddr parsed-expr)))
+                           (new-body (annotate-last-elem body)))
+                        `(,lambda-def ,params ,new-body)))
+                (else (cons (car parsed-expr) (annotate-tc (cdr parsed-expr)))))))
+
+
+
