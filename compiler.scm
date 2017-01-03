@@ -840,20 +840,16 @@
         (run sexpr (lambda () "Exception in parser")))))
 
 (define eliminate-nested-defines-helper
-       (lambda(parsed-expr ret-ds+es)
-           (if (null? parsed-expr)
-                (ret-ds+es '() '())
-                (eliminate-nested-defines-helper (cdr parsed-expr)
-                     (lambda (ds es)
-                           (cond ((list? (car parsed-expr))
-                                    (eliminate-nested-defines-helper (car parsed-expr)
-                                       (lambda(ds1 es1)
-                                         (ret-ds+es (append ds1 ds) (append es1 es)))))
-                                 ((eq? (car parsed-expr) 'def) (ret-ds+es (cons parsed-expr ds) es))
-                                 ((eq? (car parsed-expr) 'seq) (eliminate-nested-defines-helper (cadr parsed-expr)
-                                                                  (lambda(ds1 es1)
-                                                                          (ret-ds+es (append ds1 ds) (append es1 es)))))
-                                 (else (ret-ds+es ds (cons parsed-expr es)))))))))
+       (lambda(parsed-expr)
+           (cond ((null? parsed-expr) (cons '() '()))
+                 ((is-lambda? (car parsed-expr)) (cons '() (list parsed-expr)))
+                 ((list? (car parsed-expr))
+                    (let ((res1 (eliminate-nested-defines-helper (car parsed-expr)))
+                          (res2 (eliminate-nested-defines-helper (cdr parsed-expr))))
+                       (cons (append (car res1) (car res2)) (append (cdr res1) (cdr res2)))))
+                 ((eq? (car parsed-expr) 'def) (cons (list parsed-expr) '()))
+                 ((eq? (car parsed-expr) 'seq) (eliminate-nested-defines-helper (cadr parsed-expr)))
+                 (else (cons '() (list parsed-expr))))))
 
 (define is-lambda?
       (lambda(e) (or (eq? e 'lambda-simple) (eq? e 'lambda-var) (eq? e 'lambda-opt))))
@@ -887,20 +883,21 @@
                    (cons (eliminate-nested-defines (car parsed-expr))
                          (eliminate-nested-defines (cdr parsed-expr))))
                 ((is-lambda? (car parsed-expr))
-                    (let ((lambda-def (lambda-get-def parsed-expr))
-                          (body (lambda-get-body parsed-expr))
-                          (params (lambda-get-params parsed-expr)))
-                       (eliminate-nested-defines-helper body
-                              (lambda(ds es)
+                    (let* ((lambda-def (lambda-get-def parsed-expr))
+                           (body (eliminate-nested-defines (lambda-get-body parsed-expr)))
+                           (params (lambda-get-params parsed-expr))
+                           (res (eliminate-nested-defines-helper body))
+                           (ds (car res))
+                           (es (cdr res)))
                                 (if (null? ds)
-                                   parsed-expr
+                                   `(,lambda-def ,@params ,body)
                                    (let* ((vars (map cadadr ds))
                                           (vals (map caddr ds))
                                           (applic-args (map (lambda (x) '(const #f)) vars))
                                           (let-sets (map (lambda (var val) `(set (var ,var) ,val)) vars vals))
                                           (let-body (append let-sets es)))
                                       `(,lambda-def ,@params
-                                         (applic (lambda-simple ,vars (seq ,let-body)) ,applic-args))))))))
+                                         (applic (lambda-simple ,vars (seq ,let-body)) ,applic-args))))))
                 (else (cons (car parsed-expr) (eliminate-nested-defines (cdr parsed-expr)))))))
 
 (define applic-lambda-nil?
@@ -1015,19 +1012,20 @@
    (lambda(parsed-expr)
           (let* ((lambda-def (lambda-get-def parsed-expr))
                  (params (lambda-get-params parsed-expr))
-                 (body (lambda-get-body parsed-expr))
+                 (body (box-set (lambda-get-body parsed-expr)))
                  (listed-params (lambda-get-listed-params parsed-expr))
                  (set-vars (remove-duplicates (find-set-vars body '())))
                  (get-vars (remove-duplicates (find-get-vars body (list listed-params) '())))
                  (bound-vars (remove-duplicates (find-bound-vars body (list listed-params) '())))
-                 (vars-to-fix (member-in-three set-vars get-vars bound-vars)))
+                 (params-in-vars (map (lambda (x) `(var ,x)) listed-params))
+                 (vars-to-fix (member-in-four set-vars get-vars bound-vars params-in-vars)))
               (if (null? vars-to-fix)
-                  parsed-expr
+                  `(,lambda-def ,@params ,body)
                   (let* ((set-exprs (map (lambda (x) `(set ,x (box ,x))) vars-to-fix))
                          (fixed-body (box-set-vars body vars-to-fix))
                          (new-body (if (eq? (car fixed-body) 'seq)
-                            `(seq (,@set-exprs ,(cdr fixed-body)))
-                            `(seq (,@set-exprs ,fixed-body)))))
+                            `(seq ,(append set-exprs (cadr fixed-body)))
+                            `(seq ,(append set-exprs (list fixed-body))))))
                      `(,lambda-def ,@params ,new-body))))))
 
 
@@ -1075,9 +1073,9 @@
                            acc)))
                 (else (find-bound-vars (cdr parsed-expr) params-acc acc)))))
 
-(define member-in-three
-    (lambda (l1 l2 l3)
-        (fold-right (lambda (mem acc) (if (and (member mem l2) (member mem l3)) (cons mem acc) acc)) (list) l1)))
+(define member-in-four
+    (lambda (l1 l2 l3 l4)
+        (fold-right (lambda (mem acc) (if (and (member mem l2) (member mem l3) (member mem l4)) (cons mem acc) acc)) (list) l1)))
 
 (define box-set-vars
     (lambda(parsed-expr vars-to-fix)
