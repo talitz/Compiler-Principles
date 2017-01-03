@@ -903,8 +903,9 @@
 (define applic-lambda-nil?
    (lambda(e)
    (and (eq? (car e) 'applic)
-        (is-lambda? (caadr e))
-        (null? (cadadr e)))))
+        (eq? 'lambda-simple (caadr e))
+        (null? (cadadr e))
+        (null? (caddr e)))))
 
 (define remove-applic-lambda-nil
       (lambda(parsed-expr)
@@ -1008,6 +1009,10 @@
                     (box-set-helper parsed-expr))
                 (else (cons (car parsed-expr) (box-set (cdr parsed-expr)))))))
 
+(define fix-order
+      (lambda (lst order)
+           (fold-right (lambda (mem acc) (if (member mem lst) (cons mem acc) acc)) (list) order)))
+
 (define box-set-helper
    (lambda(parsed-expr)
           (let* ((lambda-def (lambda-get-def parsed-expr))
@@ -1018,7 +1023,7 @@
                  (get-vars (remove-duplicates (find-get-vars body (list listed-params) '())))
                  (bound-vars (remove-duplicates (find-bound-vars body (list listed-params) '())))
                  (params-in-vars (map (lambda (x) `(var ,x)) listed-params))
-                 (vars-to-fix (member-in-four set-vars get-vars bound-vars params-in-vars)))
+                 (vars-to-fix (fix-order (member-in-three set-vars get-vars bound-vars) params-in-vars)))
               (if (null? vars-to-fix)
                   `(,lambda-def ,@params ,body)
                   (let* ((set-exprs (map (lambda (x) `(set ,x (box ,x))) vars-to-fix))
@@ -1034,7 +1039,15 @@
           (cond ((or (not (list? parsed-expr)) (null? parsed-expr)) acc)
                 ((list? (car parsed-expr))
                   (append (find-set-vars (car parsed-expr) acc) (find-set-vars (cdr parsed-expr) acc)))
-                ((eq? (car parsed-expr) 'set) (cons (cadr parsed-expr) acc))
+                ((is-lambda? (car parsed-expr))
+                   (let* ((lambda-def (lambda-get-def parsed-expr))
+                          (listed-params (lambda-get-listed-params parsed-expr))
+                          (body (lambda-get-body parsed-expr))
+                          (var-listed-params (map (lambda(x) `(var ,x)) listed-params))
+                          (res (find-set-vars body acc)))
+                       (append (remove-from-list res var-listed-params) acc)))
+                ((eq? (car parsed-expr) 'set)
+                    (cons (cadr parsed-expr) (find-set-vars (caddr parsed-expr) acc)))
                 (else (find-set-vars (cdr parsed-expr) acc)))))
 
 (define find-get-vars
@@ -1045,8 +1058,10 @@
                 ((is-lambda? (car parsed-expr))
                    (let* ((lambda-def (lambda-get-def parsed-expr))
                           (listed-params (lambda-get-listed-params parsed-expr))
-                          (body (lambda-get-body parsed-expr)))
-                       (append (find-get-vars body (cons listed-params params-acc) acc) acc)))
+                          (body (lambda-get-body parsed-expr))
+                          (var-listed-params (map (lambda(x) `(var ,x)) listed-params))
+                          (res (find-get-vars body (cons listed-params params-acc) acc)))
+                       (append (remove-from-list res var-listed-params) acc)))
                 ((eq? (car parsed-expr) 'set)
                    (append (find-get-vars (cddr parsed-expr) params-acc acc) acc))
                 ((eq? (car parsed-expr) 'var)
@@ -1064,8 +1079,10 @@
                 ((is-lambda? (car parsed-expr))
                    (let* ((lambda-def (lambda-get-def parsed-expr))
                           (listed-params (lambda-get-listed-params parsed-expr))
-                          (body (lambda-get-body parsed-expr)))
-                       (append (find-bound-vars body (cons listed-params params-acc) acc) acc)))
+                          (body (lambda-get-body parsed-expr))
+                          (var-listed-params (map (lambda(x) `(var ,x)) listed-params))
+                          (res (find-bound-vars body (cons listed-params params-acc) acc)))
+                       (append (remove-from-list res var-listed-params) acc)))
                 ((eq? (car parsed-expr) 'var)
                    (let ((tagged-var (find-var-in-acc (cadr parsed-expr) params-acc)))
                        (if (eq? (car tagged-var) 'bvar)
@@ -1073,9 +1090,9 @@
                            acc)))
                 (else (find-bound-vars (cdr parsed-expr) params-acc acc)))))
 
-(define member-in-four
-    (lambda (l1 l2 l3 l4)
-        (fold-right (lambda (mem acc) (if (and (member mem l2) (member mem l3) (member mem l4)) (cons mem acc) acc)) (list) l1)))
+(define member-in-three
+    (lambda (l1 l2 l3)
+        (fold-right (lambda (mem acc) (if (and (member mem l2) (member mem l3)) (cons mem acc) acc)) (list) l1)))
 
 (define remove-from-list
     (lambda (lst vars-to-remove)
