@@ -1077,6 +1077,12 @@
     (lambda (l1 l2 l3 l4)
         (fold-right (lambda (mem acc) (if (and (member mem l2) (member mem l3) (member mem l4)) (cons mem acc) acc)) (list) l1)))
 
+(define remove-from-list
+    (lambda (lst vars-to-remove)
+        (cond ((null? lst) lst)
+              ((member (car lst) vars-to-remove) (remove-from-list (cdr lst) vars-to-remove))
+              (else (cons (car lst) (remove-from-list (cdr lst) vars-to-remove))))))
+
 (define box-set-vars
     (lambda(parsed-expr vars-to-fix)
          (cond ((or (not (list? parsed-expr)) (null? parsed-expr)) parsed-expr)
@@ -1086,6 +1092,12 @@
                   `(box-set ,(cadr parsed-expr) ,@(box-set-vars (cddr parsed-expr) vars-to-fix)))
                 ((and (eq? (car parsed-expr) 'var) (member parsed-expr vars-to-fix))
                   `(box-get ,parsed-expr))
+                ((is-lambda? (car parsed-expr))
+                   (let ((lambda-def (lambda-get-def parsed-expr))
+                         (body (lambda-get-body parsed-expr))
+                         (params (lambda-get-params parsed-expr))
+                         (listed-params (map (lambda(x) `(var ,x)) (lambda-get-listed-params parsed-expr))))
+                   `(,lambda-def ,@params ,(box-set-vars body (remove-from-list vars-to-fix listed-params)))))
                 (else (cons (car parsed-expr) (box-set-vars (cdr parsed-expr) vars-to-fix))))))
 
 (define run (lambda (x)
