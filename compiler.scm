@@ -851,6 +851,9 @@
                  ((eq? (car parsed-expr) 'seq) (eliminate-nested-defines-helper (cadr parsed-expr)))
                  (else (cons '() (list parsed-expr))))))
 
+(define is-set?
+      (lambda(e) (and (eq? (car e) 'set) (eq? (length e) 3))))
+
 (define is-lambda?
       (lambda(e) (or (eq? e 'lambda-simple) (eq? e 'lambda-var) (eq? e 'lambda-opt))))
 
@@ -1046,7 +1049,7 @@
                           (var-listed-params (map (lambda(x) `(var ,x)) listed-params))
                           (res (find-set-vars body acc)))
                        (append (remove-from-list res var-listed-params) acc)))
-                ((eq? (car parsed-expr) 'set)
+                ((is-set? parsed-expr)
                     (cons (cadr parsed-expr) (find-set-vars (caddr parsed-expr) acc)))
                 (else (find-set-vars (cdr parsed-expr) acc)))))
 
@@ -1062,7 +1065,7 @@
                           (var-listed-params (map (lambda(x) `(var ,x)) listed-params))
                           (res (find-get-vars body (cons listed-params params-acc) acc)))
                        (append (remove-from-list res var-listed-params) acc)))
-                ((eq? (car parsed-expr) 'set)
+                ((is-set? parsed-expr)
                    (append (find-get-vars (cddr parsed-expr) params-acc acc) acc))
                 ((eq? (car parsed-expr) 'var)
                    (let ((tagged-var (find-var-in-acc (cadr parsed-expr) params-acc)))
@@ -1105,7 +1108,7 @@
          (cond ((or (not (list? parsed-expr)) (null? parsed-expr)) parsed-expr)
                 ((list? (car parsed-expr))
                   (cons (box-set-vars (car parsed-expr) vars-to-fix) (box-set-vars (cdr parsed-expr) vars-to-fix)))
-                ((and (eq? (car parsed-expr) 'set) (member (cadr parsed-expr) vars-to-fix))
+                ((and (is-set? parsed-expr) (member (cadr parsed-expr) vars-to-fix))
                   `(box-set ,(cadr parsed-expr) ,@(box-set-vars (cddr parsed-expr) vars-to-fix)))
                 ((and (eq? (car parsed-expr) 'var) (member parsed-expr vars-to-fix))
                   `(box-get ,parsed-expr))
