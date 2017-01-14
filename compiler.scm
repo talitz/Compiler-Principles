@@ -1137,19 +1137,24 @@
      (lambda(exp)
         (annotate-tc (pe->lex-pe (box-set (remove-applic-lambda-nil (eliminate-nested-defines (parse exp))))))))
 
+(define nl "\n")
+
 (define compile-scheme-file
     (lambda(scheme-path target-path)
           (let* ((txt-string (file->string scheme-path))
                  (reader (open-input-string txt-string))
                  (expr-list (read-expr-list reader))
                  (parsed-expr-list (map full-parse expr-list))
-                 (const-table (make-const-table parsed-expr-list)))
-                 ;(global-table (make-global-table parsed-expr-list))
-                 ;(prologue (create-prologue const-table global-table))
-                 ;(code-txt-parts (map code-gen parsed-expr-list))
-                 ;(code (apply string-append code-txt-parts)))
-                ;(string-append prologue code epilogue))))
-                const-table)))
+                 (const-table (make-const-table parsed-expr-list))
+                 (global-table (make-global-table parsed-expr-list))
+                 (prologue (create-prologue const-table global-table))
+                 (code-txt-parts (map code-gen parsed-expr-list))
+                 (code (apply string-append code-txt-parts))
+                 (final-code (string-append prologue code epilogue)))
+                   (delete-file target-path)
+                   (let ((output-file (open-output-file target-path)))
+                      (display final-code output-file)
+                      (close-output-port output-file)))))
 
 
 (define read-expr-list
@@ -1186,10 +1191,11 @@
                    (repr (caddr y))
                    (counter (box 0)))
                 (string-append x (fold-left (lambda(a b)
-                   (let ((res (string-append "[" (number->string (+ addr (unbox counter))) "]  " b "\n")))
+                   (let ((res (string-append "[" (number->string (+ addr (unbox counter))) "]\t" b nl)))
                       (set-box! counter (+ (unbox counter) 1))
                       (string-append a res))) "" repr)))) "" const-table)))
 
+(define const-table-register "R2")
 
 (define make-const-table-helper
      (lambda(parsed-expr-list const-table)
@@ -1205,13 +1211,23 @@
 
 (define make-const-table-single
      (lambda(val const-table)
-         (let ((new-addr (const-table-new-address const-table)))
+         (letrec ((new-addr (const-table-new-address const-table))
+                  (string-repr (lambda(str)
+                     (map (lambda(x) (number->string (char->integer x))) (string->list str)))))
             (cond ((member-const-table val const-table) const-table)
                   ((number? val) (append const-table `((,new-addr ,val ("T_INTEGER" ,(number->string val))))))
-                  ((char? val) (append const-table `((,new-addr ,val ("T_CHAR" ,(string val))))))
-                  ((string? val) (append const-table `((,new-addr ,val ("T_STRING" ,val)))))
-                  ((symbol? val) (append const-table `((,new-addr ,val ("T_SYMBOL" ,(symbol->string val))))))
+                  ((char? val) (append const-table `((,new-addr ,val ("T_CHAR"
+                     ,(string-append "'" (string val) "'"))))))
+                  ((string? val) (append const-table `((,new-addr ,val ("T_STRING"
+                      ,(number->string (length (string->list val)))
+                      ,@(string-repr val))))))
+                  ((symbol? val)
+                      (let ((str (symbol->string val)))
+                         (append const-table `((,new-addr ,val ("T_SYMBOL"
+                            ,(number->string (length (string->list str)))
+                            ,@(string-repr str)))))))
                   ((pair? val) (make-const-table-pair val const-table))
+                  ((vector? val) (make-const-table-vector val const-table))
                   (else const-table)))))
 
 (define make-const-table-pair
@@ -1225,34 +1241,142 @@
                      ,(number->string (member-const-table (cdr val) second-table)))))))
             (make-const-table-single val const-table))))
 
+(define make-const-table-vector
+     (lambda(val const-table)
+         (let ((boxed-const-table (box const-table))
+               (lst (vector->list val)))
+             (map (lambda(x) (set-box! boxed-const-table (make-const-table-single x (unbox boxed-const-table))))
+                 lst)
+             (let* ((new-const-table (unbox boxed-const-table))
+                    (new-addr (const-table-new-address new-const-table))
+                    (repr-start `("T_VECTOR" ,(number->string (length lst)))))
+                 (append new-const-table `((,new-addr ,val
+                     ,(append repr-start (map (lambda(x) (number->string (member-const-table x new-const-table))) lst)))))))))
+
+(define make-const-table-mov-instructions
+     (lambda (const-table)
+        (let ((counter (box 0)))
+           (fold-left (lambda(x y)
+              (let ((repr (caddr y)))
+                (string-append x
+                  (fold-left (lambda(a b)
+                     (let ((res (string-append "MOV(INDD(" const-table-register ", " (number->string (unbox counter))
+                             "), IMM(" b "));" nl)))
+                         (set-box! counter (+ (unbox counter) 1))
+                         (string-append a res)))
+                     "" repr))))
+                         "" const-table))))
+
+
 
 (define make-global-table
      (lambda(parsed-expr-list) '()))
 
-(define create-prologue
-     (lambda(const-table global-table) ""))
+(define func-prologue
+   (string-append
+     "PUSH(FP);" nl
+     "MOV(FP, SP);" nl
+     ))
 
-(define epilogue "")
+(define func-epilogue
+   (string-append
+      "POP(FP);" nl
+      "RETURN;" nl
+      ))
+
+(define create-prologue
+     (lambda(const-table global-table)
+                (let ((const-table-size (number->string (- (const-table-new-address const-table) 1))))
+           (string-append
+            "#include <stdio.h>" nl
+            "#include <stdlib.h>" nl
+            "#define DO_SHOW 1" nl
+            "#include \"cisc.h\"" nl
+            nl
+            "int main()" nl
+            "{" nl
+            "START_MACHINE;" nl
+            nl
+            "JUMP(CONTINUE);" nl
+            nl
+            "#include \"char.lib\"" nl
+            "#include \"io.lib\"" nl
+            "#include \"math.lib\"" nl
+            "#include \"string.lib\"" nl
+            "#include \"system.lib\"" nl
+            "#include \"scheme.lib\"" nl
+            nl
+            nl
+            "INIT_CONST_TABLE:" nl
+            func-prologue
+            "PUSH(IMM(" const-table-size "));" nl
+            "CALL(MALLOC);" nl
+            "DROP(1);" nl
+            "MOV(" const-table-register ", R0);" nl
+            (make-const-table-mov-instructions const-table)
+            func-epilogue
+            nl
+            nl
+            "DISPLAY_MEMORY:" nl
+            func-prologue
+            "{" nl
+            "int mem_size = IND(0);" nl
+            "int i;" nl
+            "for (i = 0; i < mem_size; i++) {" nl
+            "   printf(\"[%d]\\t\", i);" nl
+            "    switch (IND(i)) {" nl
+            "      case T_VOID:" nl
+            "         printf(\"T_VOID\");" nl
+            "         break;" nl
+            "      case T_NIL:" nl
+            "         printf(\"T_NIL\");" nl
+            "         break;" nl
+            "      case T_BOOL:" nl
+            "         printf(\"T_BOOL\");" nl
+            "         break;" nl
+            "      case T_CHAR:" nl
+            "         printf(\"T_CHAR\");" nl
+            "         break;" nl
+            "      case T_INTEGER:" nl
+            "         printf(\"T_INTEGER\");" nl
+            "         break;" nl
+            "      case T_STRING:" nl
+            "         printf(\"T_STRING\");" nl
+            "         break;" nl
+            "      case T_SYMBOL:" nl
+            "         printf(\"T_SYMBOL\");" nl
+            "         break;" nl
+            "      case T_PAIR:" nl
+            "         printf(\"T_PAIR\");" nl
+            "         break;" nl
+            "      case T_VECTOR:" nl
+            "         printf(\"T_VECTOR\");" nl
+            "         break;" nl
+            "      case T_CLOSURE:" nl
+            "         printf(\"T_CLOSURE\");" nl
+            "         break;" nl
+            "      default:" nl
+            "         printf(\"%ld\", IND(i));" nl
+            "    }" nl
+            "    printf(\"\\n\");" nl
+            " }" nl
+            "}" nl
+            func-epilogue
+            nl
+            nl
+            "CONTINUE:" nl
+            "CALL(INIT_CONST_TABLE);" nl
+            "CALL(DISPLAY_MEMORY);" nl
+            ))))
+
+
+(define epilogue
+    (string-append
+        "STOP_MACHINE;" nl
+        nl
+        "return 0;" nl
+        "}" nl))
 
 (define code-gen
     (lambda(parsed-expr)
-        (let ((exp (car parsed-expr)))
-           (cond ((null? exp ""))
-                 ((list? exp) (string-append (code-gen exp) (code-gen (cdr parsed-expr))))
-                 (else (string-append (code-gen-exp exp) (code-gen (cdr parsed-expr))))))))
-
-(define code-gen-exp
-    (lambda(parsed-expr)
-        (let ((tag (car parsed-expr)))
-            (cond ((eq? tag 'const) (code-gen-const parsed-expr))
-                   (else (error 'code-gen-exp (format "code-gen called on unknown tag ~s" tag)))))))
-
-(define code-gen-const
-    (lambda(parsed-expr)
-        (let ((val (cadr parsed-expr)))
-             ((constant-name (cond ((number? val) (string-append "T_Int" (number->string val)))
-                                   ((boolean? val) (string-append "T_Bool" (number->string (if val 1 0))))
-                                   ((symbol? val) (string-append "T_Symbol" (symbol->string val)))
-                                   ((string? val) (string-append "T_String" val))
-                                   ((list? val) (string-append "T_List" (list->string val)))
-                                   ((pair? val) (string-append "T_Pair" (pair->string)))))))))
+        ""))
