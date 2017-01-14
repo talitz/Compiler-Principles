@@ -1120,9 +1120,139 @@
                    `(,lambda-def ,@params ,(box-set-vars body (remove-from-list vars-to-fix listed-params)))))
                 (else (cons (car parsed-expr) (box-set-vars (cdr parsed-expr) vars-to-fix))))))
 
-(define run (lambda (x)
-		    (annotate-tc
-		      (pe->lex-pe
-			(box-set
-			  (remove-applic-lambda-nil
-			    (eliminate-nested-defines (parse x))))))))
+(define file->string
+   (lambda (in-file)
+      (let ((in-port (open-input-file in-file)))
+        (letrec ((run
+          (lambda ()
+            (let ((ch (read-char in-port)))
+              (if (eof-object? ch)
+                 (begin
+                  (close-input-port in-port)
+                  '())
+                (cons ch (run)))))))
+                 (list->string (run))))))
+
+(define full-parse
+     (lambda(exp)
+        (annotate-tc (pe->lex-pe (box-set (remove-applic-lambda-nil (eliminate-nested-defines (parse exp))))))))
+
+(define compile-scheme-file
+    (lambda(scheme-path target-path)
+          (let* ((txt-string (file->string scheme-path))
+                 (reader (open-input-string txt-string))
+                 (expr-list (read-expr-list reader))
+                 (parsed-expr-list (map full-parse expr-list))
+                 (const-table (make-const-table parsed-expr-list)))
+                 ;(global-table (make-global-table parsed-expr-list))
+                 ;(prologue (create-prologue const-table global-table))
+                 ;(code-txt-parts (map code-gen parsed-expr-list))
+                 ;(code (apply string-append code-txt-parts)))
+                ;(string-append prologue code epilogue))))
+                const-table)))
+
+
+(define read-expr-list
+    (lambda(reader)
+          (let ((exp (read reader)))
+              (if (eq? exp #!eof)
+                  '()
+                  (cons exp (read-expr-list reader))))))
+
+(define make-const-table
+     (lambda(parsed-expr-list)
+         (let ((const-table (box '((1 (void) ("T_VOID"))
+                                   (2 () ("T_NIL"))
+                                   (3 #f ("T_BOOL" "0"))
+                                   (5 #t ("T_BOOL" "1"))))))
+             (make-const-table-helper parsed-expr-list const-table)
+             (unbox const-table))))
+
+(define member-const-table
+     (lambda(val const-table)
+         (cond ((null? const-table) #f)
+               ((equal? (cadr (car const-table)) val) (caar const-table))
+               (else (member-const-table val (cdr const-table))))))
+
+(define const-table-new-address
+     (lambda(const-table)
+         (let ((last (last-elem const-table)))
+             (+ (car last) (length (caddr last))))))
+
+(define const-table-debug
+     (lambda(const-table)
+         (fold-left (lambda (x y)
+             (let ((addr (car y))
+                   (repr (caddr y))
+                   (counter (box 0)))
+                (string-append x (fold-left (lambda(a b)
+                   (let ((res (string-append "[" (number->string (+ addr (unbox counter))) "]  " b "\n")))
+                      (set-box! counter (+ (unbox counter) 1))
+                      (string-append a res))) "" repr)))) "" const-table)))
+
+
+(define make-const-table-helper
+     (lambda(parsed-expr-list const-table)
+         (cond ((null? parsed-expr-list) '())
+               ((null? (car parsed-expr-list)) (make-const-table-helper (cdr parsed-expr-list) const-table))
+               ((list? (car parsed-expr-list))
+                     (make-const-table-helper (car parsed-expr-list) const-table)
+                     (make-const-table-helper (cdr parsed-expr-list) const-table))
+               ((eq? (car parsed-expr-list) 'const)
+                   (let ((const-table-unboxed (unbox const-table)))
+                      (set-box! const-table (make-const-table-single (cadr parsed-expr-list) const-table-unboxed))))
+               (else (make-const-table-helper (cdr parsed-expr-list) const-table)))))
+
+(define make-const-table-single
+     (lambda(val const-table)
+         (let ((new-addr (const-table-new-address const-table)))
+            (cond ((member-const-table val const-table) const-table)
+                  ((number? val) (append const-table `((,new-addr ,val ("T_INTEGER" ,(number->string val))))))
+                  ((char? val) (append const-table `((,new-addr ,val ("T_CHAR" ,(string val))))))
+                  ((string? val) (append const-table `((,new-addr ,val ("T_STRING" ,val)))))
+                  ((symbol? val) (append const-table `((,new-addr ,val ("T_SYMBOL" ,(symbol->string val))))))
+                  ((pair? val) (make-const-table-pair val const-table))
+                  (else const-table)))))
+
+(define make-const-table-pair
+     (lambda(val const-table)
+         (if (pair? val)
+            (let* ((first-table (make-const-table-single (car val) const-table))
+                   (second-table (make-const-table-single (cdr val) first-table))
+                   (new-addr (const-table-new-address second-table)))
+                (append second-table `((,new-addr ,val
+                   ("T_PAIR" ,(number->string (member-const-table (car val) second-table))
+                     ,(number->string (member-const-table (cdr val) second-table)))))))
+            (make-const-table-single val const-table))))
+
+
+(define make-global-table
+     (lambda(parsed-expr-list) '()))
+
+(define create-prologue
+     (lambda(const-table global-table) ""))
+
+(define epilogue "")
+
+(define code-gen
+    (lambda(parsed-expr)
+        (let ((exp (car parsed-expr)))
+           (cond ((null? exp ""))
+                 ((list? exp) (string-append (code-gen exp) (code-gen (cdr parsed-expr))))
+                 (else (string-append (code-gen-exp exp) (code-gen (cdr parsed-expr))))))))
+
+(define code-gen-exp
+    (lambda(parsed-expr)
+        (let ((tag (car parsed-expr)))
+            (cond ((eq? tag 'const) (code-gen-const parsed-expr))
+                   (else (error 'code-gen-exp (format "code-gen called on unknown tag ~s" tag)))))))
+
+(define code-gen-const
+    (lambda(parsed-expr)
+        (let ((val (cadr parsed-expr)))
+             ((constant-name (cond ((number? val) (string-append "T_Int" (number->string val)))
+                                   ((boolean? val) (string-append "T_Bool" (number->string (if val 1 0))))
+                                   ((symbol? val) (string-append "T_Symbol" (symbol->string val)))
+                                   ((string? val) (string-append "T_String" val))
+                                   ((list? val) (string-append "T_List" (list->string val)))
+                                   ((pair? val) (string-append "T_Pair" (pair->string)))))))))

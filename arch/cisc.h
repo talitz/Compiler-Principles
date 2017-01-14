@@ -12,8 +12,8 @@
 #define Mega(n) (Kilo(n) << 10)
 #define Giga(n) (Mega(n) << 10)
 
-#define RAM_SIZE Giga(1)
-#define STACK_SIZE Giga(1)
+#define RAM_SIZE Giga(8)
+#define STACK_SIZE Giga(8)
 
 #define WORD_SIZE (sizeof(long))
 
