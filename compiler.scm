@@ -1139,6 +1139,13 @@
 
 (define nl "\n")
 
+(define const-nil-register "R15")
+(define const-void-register "R14")
+(define const-true-register "R13")
+(define const-false-register "R12")
+(define const-table-register "R11")
+(define global-table-register "R10")
+
 (define compile-scheme-file
     (lambda(scheme-path target-path)
           (let* ((txt-string (file->string scheme-path))
@@ -1155,7 +1162,7 @@
                    (let ((output-file (open-output-file target-path)))
                       (display final-code output-file)
                       (close-output-port output-file)))))
-
+(print-gensym #f)
 
 (define read-expr-list
     (lambda(reader)
@@ -1166,7 +1173,7 @@
 
 (define make-const-table
      (lambda(parsed-expr-list)
-         (let ((const-table (box '((0 (void) ("T_VOID"))
+         (let ((const-table (box `((0 ,(void) ("T_VOID"))
                                    (1 () ("T_NIL"))
                                    (2 #f ("T_BOOL" "0"))
                                    (4 #t ("T_BOOL" "1"))))))
@@ -1194,8 +1201,6 @@
                    (let ((res (string-append "[" (number->string (+ addr (unbox counter))) "]\t" b nl)))
                       (set-box! counter (+ (unbox counter) 1))
                       (string-append a res))) "" repr)))) "" const-table)))
-
-(define const-table-register "R9")
 
 (define make-const-table-helper
      (lambda(parsed-expr-list const-table)
@@ -1268,12 +1273,7 @@
                          "" table))))
 
 (define make-const-table-mov-instructions
-     (lambda(table) (make-table-mov-instructions table const-table-register)))
-
-(define make-const-table-defines
-    (lambda(table)
-        (string-append
-            "#define SOB_FALSE /* continue here... wanted to create SOB_FALSE with defines inside the constant table */
+     (lambda(table) (make-table-mov-instructions table "CONST_TABLE")))
 
 (define make-global-table
      (lambda(parsed-expr-list)
@@ -1282,14 +1282,12 @@
              (make-global-table-helper parsed-expr-list global-table)
              (unbox global-table))))
 
-(define global-table-register "R10")
-
 (define member-global-table member-const-table)
 
 (define global-table-new-address const-table-new-address)
 
 (define make-global-table-mov-instructions
-     (lambda(table) (make-table-mov-instructions table global-table-register)))
+     (lambda(table) (make-table-mov-instructions table "GLOBAL_TABLE")))
 
 (define make-global-table-helper
     (lambda(parsed-expr-list global-table)
@@ -1322,6 +1320,14 @@
       "RETURN;" nl
       ))
 
+(define range
+  (lambda (n . m)
+    (let
+      ((n (if (null? m) 0 n)) (m (if (null? m) n (car m))))
+      (cond
+    ((= n m) (list n))
+    (else (cons n (range ((if (< n m) + -) n 1) m)))))))
+
 (define create-prologue
      (lambda(const-table global-table)
                 (let ((const-table-size (number->string (const-table-new-address const-table)))
@@ -1346,14 +1352,22 @@
             "#include \"scheme.lib\"" nl
             nl
             nl
+            "#define CONST_TABLE " const-table-register nl
+            "#define GLOBAL_TABLE " global-table-register nl
+            nl
+            "#define SOB_NIL " const-nil-register nl
+            "#define SOB_VOID " const-void-register nl
+            "#define SOB_TRUE " const-true-register nl
+            "#define SOB_FALSE " const-false-register nl
+            nl
+            nl
             "INIT_CONST_TABLE:" nl
             func-prologue
             "PUSH(IMM(" const-table-size "));" nl
             "CALL(MALLOC);" nl
             "DROP(1);" nl
-            "MOV(" const-table-register ", R0);" nl
+            "MOV(CONST_TABLE, R0);" nl
             (make-const-table-mov-instructions const-table)
-            (make-const-table-defines const-table)
             func-epilogue
             nl
             nl
@@ -1362,13 +1376,32 @@
             "PUSH(IMM(" global-table-size "));" nl
             "CALL(MALLOC);" nl
             "DROP(1);" nl
-            "MOV(" global-table-register ", R0);" nl
+            "MOV(GLOBAL_TABLE, R0);" nl
             (make-global-table-mov-instructions global-table)
+            nl
+            "MOV(R0, CONST_TABLE);" nl
+            "ADD(R0, " (number->string (member-const-table '() const-table)) ");" nl
+            "MOV(" const-nil-register ", R0);" nl
+            "MOV(R0, CONST_TABLE);" nl
+            "ADD(R0, " (number->string (member-const-table (void) const-table)) ");" nl
+            "MOV(" const-void-register ", R0);" nl
+            "MOV(R0, CONST_TABLE);" nl
+            "ADD(R0, " (number->string (member-const-table #f const-table)) ");" nl
+            "MOV(" const-false-register ", R0);" nl
+            "MOV(R0, CONST_TABLE);" nl
+            "ADD(R0, " (number->string (member-const-table #t const-table)) ");" nl
+            "MOV(" const-true-register ", R0);" nl
+
             func-epilogue
             nl
             nl
-            "DISPLAY_MEMORY:" nl
+            "MAYER_GDB:" nl
             func-prologue
+            "printf(\"============================== Mayer GDB Start ==============================\\n\");" nl
+            (apply string-append
+               (map (lambda(i) (string-append "printf(\"R[" (number->string i) "] = %ld\\n\", R" (number->string i) ");" nl))
+                  (range 0 15)))
+            "printf(\"\\n\");"
             "{" nl
             "int mem_size = IND(0);" nl
             "int i;" nl
@@ -1414,42 +1447,100 @@
             "    printf(\"\\n\");" nl
             " }" nl
             "}" nl
+            "printf(\"============================== Mayer GDB End ==============================\\n\");" nl
             func-epilogue
             nl
             nl
             "CONTINUE:" nl
             "CALL(INIT_CONST_TABLE);" nl
             "CALL(INIT_GLOBAL_TABLE);" nl
-            "CALL(DISPLAY_MEMORY);" nl
+            "CALL(MAYER_GDB);" nl
+            nl
+            nl
             ))))
 
 
 (define epilogue
     (string-append
+        "CALL(MAYER_GDB);" nl
         "STOP_MACHINE;" nl
         nl
         "return 0;" nl
         "}" nl))
+
+(define label-gen
+    (lambda(str)
+        (string-append str "_" (symbol->string (gensym)))))
 
 (define code-gen
     (lambda(parsed-expr const-table global-table)
         (cond ((null? parsed-expr) "")
               ((list? (car parsed-expr)) (string-append (code-gen (car parsed-expr) const-table global-table)
                                                         (code-gen (cdr parsed-expr) const-table global-table)))
-              ((eq? (car parsed-expr) 'const) (code-gen-const (cadr parsed-expr) const-table))
-              ((eq? (car parsed-expr) 'if3') (code-gen-if parsed-expr const-table global-table))
+              ((eq? (car parsed-expr) 'const) (code-gen-const parsed-expr const-table))
+              ((eq? (car parsed-expr) 'if3) (code-gen-if parsed-expr const-table global-table))
+              ((eq? (car parsed-expr) 'seq) (code-gen-seq parsed-expr const-table global-table))
+              ((eq? (car parsed-expr) 'or) (code-gen-or parsed-expr const-table global-table))
               (else ""))))
 
+(define code-gen-prologue
+    (lambda(name)
+        (string-append nl (label-gen (string-append name "_enter")) ":" nl)))
+
+(define code-gen-epilogue
+    (lambda(name)
+        (string-append nl (label-gen (string-append name "_exit")) ":" nl)))
+
 (define code-gen-const
-    (lambda(val const-table)
-        (let ((rel-addr (member-const-table val const-table)))
-            (string-append "MOV(R0, INDD(" const-table-register ", " (number->string rel-addr) "));" nl))))
+    (lambda(expr const-table)
+        (let* ((val (cadr expr))
+               (rel-addr (member-const-table val const-table)))
+            (string-append
+               (code-gen-prologue "const")
+               "MOV(R0, CONST_TABLE);" nl
+               "ADD(R0, " (number->string rel-addr) ");" nl))))
 
 (define code-gen-if
     (lambda(expr const-table global-table)
         (let ((test (cadr expr))
               (dit (caddr expr))
-              (dif (cadddr expr)))
+              (dif (cadddr expr))
+              (else-label (label-gen "L_if3_else"))
+              (exit-label (label-gen "L_if3_exit")))
             (string-append
+              (code-gen-prologue "if3")
               (code-gen test const-table global-table)
-              "CMP(R0,IMM(" (code-gen (full-parse '#f) const-table global-table) "));"
+              "CMP(R0, IMM(SOB_FALSE));" nl
+              "JUMP_EQ(" else-label ");" nl
+              (code-gen dit const-table global-table)
+              "JUMP(" exit-label ");" nl
+              else-label ":" nl
+              (code-gen dif const-table global-table)
+              nl
+              exit-label ":" nl
+              ))))
+
+(define code-gen-seq
+    (lambda(expr const-table global-table)
+       (let ((expr-list (cadr expr)))
+           (string-append
+             (code-gen-prologue "seq")
+             (apply string-append (map (lambda(exp) (code-gen exp const-table global-table)) expr-list))
+             (code-gen-epilogue "seq")))))
+
+(define code-gen-or
+    (lambda(expr const-table global-table)
+       (let ((expr-list (cadr expr))
+             (exit-label (label-gen "L_or_exit")))
+           (string-append
+             (code-gen-prologue "or")
+             (apply string-append
+               (map (lambda(exp)
+                (string-append
+                   (code-gen exp const-table global-table)
+                   "CMP(R0, IMM(SOB_FALSE));" nl
+                   "JUMP_NE(" exit-label ");" nl
+                   )) expr-list))
+             nl
+             exit-label ":" nl
+             ))))
