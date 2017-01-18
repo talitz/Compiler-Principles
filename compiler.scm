@@ -1155,7 +1155,7 @@
                  (const-table (make-const-table parsed-expr-list))
                  (global-table (make-global-table parsed-expr-list))
                  (prologue (create-prologue const-table global-table))
-                 (code-txt-parts (map (lambda(x) (code-gen x const-table global-table)) parsed-expr-list))
+                 (code-txt-parts (map (lambda(x) (code-gen x const-table global-table 0)) parsed-expr-list))
                  (code (apply string-append code-txt-parts))
                  (final-code (string-append prologue code epilogue)))
                    (delete-file target-path)
@@ -1328,6 +1328,23 @@
     ((= n m) (list n))
     (else (cons n (range ((if (< n m) + -) n 1) m)))))))
 
+(define l_error
+    (lambda (label-name txt)
+        (let ((txt-lst (string->list txt)))
+          (string-append
+             label-name ":" nl
+             func-prologue
+             (apply string-append (map (lambda(x) (string-append "PUSH(IMM('" (string x) "')); ")) txt-lst))
+             "PUSH(IMM(" (number->string (length txt-lst)) "));" nl
+             "CALL(MAKE_SOB_STRING);" nl
+             "DROP(" (number->string (+ (length txt-lst) 1)) ");" nl
+             "PUSH(IMM(R0));" nl
+             "CALL(WRITELN);" nl
+             "DROP(1)" nl
+             "JUMP(EXIT);" nl
+             func-epilogue
+             ))))
+
 (define create-prologue
      (lambda(const-table global-table)
                 (let ((const-table-size (number->string (const-table-new-address const-table)))
@@ -1337,6 +1354,7 @@
             "#include <stdlib.h>" nl
             "#define DO_SHOW 1" nl
             "#include \"cisc.h\"" nl
+            "#include \"debug_macros.h\"" nl
             nl
             "int main()" nl
             "{" nl
@@ -1391,70 +1409,28 @@
             "MOV(R0, CONST_TABLE);" nl
             "ADD(R0, " (number->string (member-const-table #t const-table)) ");" nl
             "MOV(" const-true-register ", R0);" nl
-
             func-epilogue
             nl
             nl
-            "MAYER_GDB:" nl
-            func-prologue
-            "printf(\"============================== Mayer GDB Start ==============================\\n\");" nl
-            (apply string-append
-               (map (lambda(i) (string-append "printf(\"R[" (number->string i) "] = %ld\\n\", R" (number->string i) ");" nl))
-                  (range 0 15)))
-            "printf(\"\\n\");"
-            "{" nl
-            "int mem_size = IND(0);" nl
-            "int i;" nl
-            "for (i = 0; i < mem_size; i++) {" nl
-            "   printf(\"[%d]\\t\", i);" nl
-            "    switch (IND(i)) {" nl
-            "      case T_VOID:" nl
-            "         printf(\"T_VOID\");" nl
-            "         break;" nl
-            "      case T_NIL:" nl
-            "         printf(\"T_NIL\");" nl
-            "         break;" nl
-            "      case T_BOOL:" nl
-            "         printf(\"T_BOOL\");" nl
-            "         break;" nl
-            "      case T_CHAR:" nl
-            "         printf(\"T_CHAR\");" nl
-            "         break;" nl
-            "      case T_INTEGER:" nl
-            "         printf(\"T_INTEGER\");" nl
-            "         break;" nl
-            "      case T_STRING:" nl
-            "         printf(\"T_STRING\");" nl
-            "         break;" nl
-            "      case T_SYMBOL:" nl
-            "         printf(\"T_SYMBOL\");" nl
-            "         break;" nl
-            "      case T_PAIR:" nl
-            "         printf(\"T_PAIR\");" nl
-            "         break;" nl
-            "      case T_VECTOR:" nl
-            "         printf(\"T_VECTOR\");" nl
-            "         break;" nl
-            "      case T_CLOSURE:" nl
-            "         printf(\"T_CLOSURE\");" nl
-            "         break;" nl
-            "      case T_UNDEFINED:" nl
-            "         printf(\"T_UNDEFINED\");" nl
-            "         break;" nl
-            "      default:" nl
-            "         printf(\"%ld\", IND(i));" nl
-            "    }" nl
-            "    printf(\"\\n\");" nl
-            " }" nl
-            "}" nl
-            "printf(\"============================== Mayer GDB End ==============================\\n\");" nl
-            func-epilogue
+            (l_error "L_error_lambda_args_count" "Lambda called with wrong number of args!")
+            (l_error "L_error_cannot_apply_non_clos" "Applic called on non closure!")
+            (l_error "L_error_define_not_fvar" "Defined called on non fvar!")
+            (l_error "L_not_in_code_gen" "Code-gen called on unknown expression!")
+            nl
+            nl
+            code-gen-write-sob-if-not-void
             nl
             nl
             "CONTINUE:" nl
+            nl
+            "CREATE_FAKE_ENV:" nl
+            "PUSH(IMM(0));" nl
+            "PUSH(IMM(SOB_VOID));" nl
+            "PUSH(IMM(SOB_VOID));" nl
+            "PUSH(IMM(SOB_VOID));" nl
+            nl
             "CALL(INIT_CONST_TABLE);" nl
             "CALL(INIT_GLOBAL_TABLE);" nl
-            "CALL(MAYER_GDB);" nl
             nl
             nl
             ))))
@@ -1462,7 +1438,12 @@
 
 (define epilogue
     (string-append
-        "CALL(MAYER_GDB);" nl
+        "// Print R0" nl
+        "PUSH(IMM(R0));" nl
+        "CALL(WRITE_SOB_IF_NOT_VOID);" nl
+        "DROP(1);" nl
+        "EXIT:" nl
+        "DROP(4); // Fake env" nl
         "STOP_MACHINE;" nl
         nl
         "return 0;" nl
@@ -1473,74 +1454,276 @@
         (string-append str "_" (symbol->string (gensym)))))
 
 (define code-gen
-    (lambda(parsed-expr const-table global-table)
+    (lambda(parsed-expr const-table global-table major)
         (cond ((null? parsed-expr) "")
-              ((list? (car parsed-expr)) (string-append (code-gen (car parsed-expr) const-table global-table)
-                                                        (code-gen (cdr parsed-expr) const-table global-table)))
+              ((list? (car parsed-expr)) (string-append (code-gen (car parsed-expr) const-table global-table major)
+                                                        (code-gen (cdr parsed-expr) const-table global-table major)))
               ((eq? (car parsed-expr) 'const) (code-gen-const parsed-expr const-table))
-              ((eq? (car parsed-expr) 'if3) (code-gen-if parsed-expr const-table global-table))
-              ((eq? (car parsed-expr) 'seq) (code-gen-seq parsed-expr const-table global-table))
-              ((eq? (car parsed-expr) 'or) (code-gen-or parsed-expr const-table global-table))
-              (else ""))))
-
-(define code-gen-prologue
-    (lambda(name)
-        (string-append nl (label-gen (string-append name "_enter")) ":" nl)))
-
-(define code-gen-epilogue
-    (lambda(name)
-        (string-append nl (label-gen (string-append name "_exit")) ":" nl)))
+              ((eq? (car parsed-expr) 'if3) (code-gen-if parsed-expr const-table global-table major))
+              ((eq? (car parsed-expr) 'seq) (code-gen-seq parsed-expr const-table global-table major))
+              ((eq? (car parsed-expr) 'or) (code-gen-or parsed-expr const-table global-table major))
+              ((eq? (car parsed-expr) 'lambda-simple) (code-gen-lambda-simple parsed-expr const-table global-table major))
+              ((eq? (car parsed-expr) 'applic) (code-gen-applic parsed-expr const-table global-table major))
+              ((eq? (car parsed-expr) 'tc-applic) (code-gen-tc-applic parsed-expr const-table global-table major))
+              ((eq? (car parsed-expr) 'fvar) (code-gen-fvar parsed-expr const-table global-table major))
+              ((eq? (car parsed-expr) 'bvar) (code-gen-bvar parsed-expr const-table global-table major))
+              ((eq? (car parsed-expr) 'pvar) (code-gen-pvar parsed-expr const-table global-table major))
+              ((eq? (car parsed-expr) 'def) (code-gen-define parsed-expr const-table global-table major))
+              (else "JUMP(L_not_in_code_gen)\n"))))
 
 (define code-gen-const
     (lambda(expr const-table)
         (let* ((val (cadr expr))
                (rel-addr (member-const-table val const-table)))
             (string-append
-               (code-gen-prologue "const")
+               "// " (format "~s" expr) nl
                "MOV(R0, CONST_TABLE);" nl
                "ADD(R0, " (number->string rel-addr) ");" nl))))
 
 (define code-gen-if
-    (lambda(expr const-table global-table)
+    (lambda(expr const-table global-table major)
         (let ((test (cadr expr))
               (dit (caddr expr))
               (dif (cadddr expr))
               (else-label (label-gen "L_if3_else"))
               (exit-label (label-gen "L_if3_exit")))
             (string-append
-              (code-gen-prologue "if3")
-              (code-gen test const-table global-table)
+              "// if3" nl
+              (code-gen test const-table global-table major)
               "CMP(R0, IMM(SOB_FALSE));" nl
               "JUMP_EQ(" else-label ");" nl
-              (code-gen dit const-table global-table)
+              (code-gen dit const-table global-table major)
               "JUMP(" exit-label ");" nl
               else-label ":" nl
-              (code-gen dif const-table global-table)
+              (code-gen dif const-table global-table major)
               nl
               exit-label ":" nl
               ))))
 
 (define code-gen-seq
-    (lambda(expr const-table global-table)
+    (lambda(expr const-table global-table major)
        (let ((expr-list (cadr expr)))
            (string-append
-             (code-gen-prologue "seq")
-             (apply string-append (map (lambda(exp) (code-gen exp const-table global-table)) expr-list))
-             (code-gen-epilogue "seq")))))
+             "// seq" nl
+             (apply string-append (map (lambda(exp) (code-gen exp const-table global-table major)) expr-list))))))
 
 (define code-gen-or
-    (lambda(expr const-table global-table)
+    (lambda(expr const-table global-table major)
        (let ((expr-list (cadr expr))
              (exit-label (label-gen "L_or_exit")))
            (string-append
-             (code-gen-prologue "or")
+             "// or" nl
              (apply string-append
                (map (lambda(exp)
                 (string-append
-                   (code-gen exp const-table global-table)
+                   (code-gen exp const-table global-table major)
                    "CMP(R0, IMM(SOB_FALSE));" nl
                    "JUMP_NE(" exit-label ");" nl
                    )) expr-list))
              nl
              exit-label ":" nl
              ))))
+
+(define code-gen-lambda-simple
+    (lambda(expr const-table global-table major)
+        (let* ((body (lambda-get-body expr))
+               (params (lambda-get-listed-params expr))
+               (new-major (+ major 1))
+               (body-label (label-gen "L_clos_body"))
+               (copy-env-label1 (label-gen "L_clos_copy_env_begin"))
+               (copy-env-label2 (label-gen "L_clos_copy_env_exit"))
+               (copy-params-label1 (label-gen "L_clos_copy_params_begin"))
+               (copy-params-label2 (label-gen "L_clos_copy_params_exit"))
+               (params-not-empty-label (label-gen "L_clos_params_not_empty"))
+               (exit-label (label-gen "L_clos_exit")))
+            (string-append
+                "// lambda-simple" nl
+                "// Allocate env list" nl
+                "MOV(R1, FPARG(0));" nl
+                "PUSH(IMM(" (number->string new-major) "));" nl
+                "CALL(MALLOC);" nl
+                "DROP(1);" nl
+                "MOV(R2, R0);" nl
+                nl
+                "// Copy old env" nl
+                "XOR(R3, R3);" nl
+                "MOV(R4, 1);" nl
+                copy-env-label1 ":" nl
+                "CMP(R3, IMM(" (number->string major) "));" nl
+                "JUMP_GE(" copy-env-label2 ");" nl
+                "MOV(R5, R2);" nl
+                "ADD(R5, R4);" nl
+                "MOV(R6, R1);" nl
+                "ADD(R6, R3);" nl
+                "MOV(IND(R5), IND(R6));" nl
+                "INCR(R3);" nl
+                "INCR(R4);" nl
+                "JUMP(" copy-env-label1 ");" nl
+                copy-env-label2 ":" nl
+                nl
+                "// Allocate current env" nl
+                "MOV(R3, FPARG(1)); // Number of last lambda params" nl
+                "PUSH(IMM(R3));" nl
+                "CALL(MALLOC);" nl
+                "DROP(1);" nl
+                "MOV(IND(R2), R0);" nl
+                "CMP(R3, IMM(0));" nl
+                "JUMP_NE(" params-not-empty-label ");" nl
+                "MOV(IND(R2), IMM(E_EMPTY));" nl
+                params-not-empty-label ":" nl
+                nl
+                "// Copy last lambda params" nl
+                "XOR(R4, R4);" nl
+                "MOV(R5, 1);" nl
+                copy-params-label1 ":" nl
+                "CMP(R4, IMM(R3));" nl
+                "JUMP_GE(" copy-params-label2 ");" nl
+                "MOV(R6, IND(R2));" nl
+                "ADD(R6, R4);" nl
+                "MOV(R7, IMM(FP));" nl
+                "SUB(R7, IMM(4));" nl
+                "SUB(R7, IMM(R5));" nl
+                "MOV(IND(R6), STACK(R7));" nl
+                "INCR(R4);" nl
+                "INCR(R5);" nl
+                "JUMP(" copy-params-label1 ");" nl
+                copy-params-label2 ":" nl
+                nl
+                "// Allocate closure object" nl
+                "PUSH(IMM(3));" nl
+                "CALL(MALLOC);" nl
+                "DROP(1);" nl
+                "MOV(INDD(R0, 0), T_CLOSURE);" nl
+                "MOV(INDD(R0, 1), IMM(R2)); // env" nl
+                "MOV(INDD(R0, 2), LABEL(" body-label "));" nl
+                "JUMP(" exit-label ");" nl
+                nl
+                "// Body " nl
+                body-label ":" nl
+                (create-lambda-body params body const-table global-table major)
+                nl
+                exit-label ":" nl
+                ))))
+
+(define create-lambda-body
+    (lambda(params body const-table global-table major)
+        (string-append
+           func-prologue
+           "CMP(FPARG(1), IMM(" (number->string (length params)) "));" nl
+           "JUMP_NE(L_error_lambda_args_count);" nl
+           (code-gen body const-table global-table (+ major 1))
+           func-epilogue)))
+
+(define code-gen-write-sob-if-not-void
+    (string-append
+        "WRITE_SOB_IF_NOT_VOID:" nl
+        func-prologue
+        "CMP(FPARG(0), IMM(SOB_VOID));" nl
+        "JUMP_EQ(WRITE_SOB_IF_NOT_VOID_END);" nl
+        "PUSH(FPARG(0));" nl
+        "CALL(WRITE_SOB);" nl
+        "DROP(1);" nl
+        "WRITE_SOB_IF_NOT_VOID_END:" nl
+        func-epilogue))
+
+(define code-gen-applic
+    (lambda(expr const-table global-table major)
+        (let ((proc (cadr expr))
+              (args (caddr expr)))
+            (string-append
+              "// applic" nl
+              (fold-right (lambda(arg code)
+                  (string-append
+                     code
+                     (code-gen arg const-table global-table major)
+                     "PUSH(IMM(R0));" nl
+                     )) "" args)
+              "PUSH(IMM(" (number->string (length args)) ")); // Num of params" nl
+              (code-gen proc const-table global-table major)
+              "CMP(INDD(R0, 0), IMM(T_CLOSURE));" nl
+              "JUMP_NE(L_error_cannot_apply_non_clos);" nl
+              "PUSH(INDD(R0, 1));" nl
+              "CALLA(INDD(R0, 2));" nl
+              "DROP(1); // env" nl
+              "POP(R1); // num of args" nl
+              "DROP(IMM(R1));" nl
+              ))))
+
+(define code-gen-tc-applic
+    (lambda(expr const-table global-table major)
+        (let ((proc (cadr expr))
+              (args (caddr expr)))
+            (string-append
+              "// tc-applic" nl
+              (fold-right (lambda(arg code)
+                  (string-append
+                     code
+                     (code-gen arg const-table global-table major)
+                     "PUSH(IMM(R0));" nl
+                     )) "" args)
+              "PUSH(IMM(" (number->string (length args)) ")); // Num of params" nl
+              (code-gen proc const-table global-table major)
+              "CMP(INDD(R0, 0), IMM(T_CLOSURE));" nl
+              "JUMP_NE(L_error_cannot_apply_non_clos);" nl
+              "PUSH(INDD(R0, 1)); // env" nl
+              "PUSH(FPARG(-1)); // ret" nl
+              "MOV(R1, INDD(FP, -1)); // save old_fp " nl
+              "{" nl
+              "int bottom = IMM(FP), distance=0, i=0, j=0;" nl
+              "bottom -= 4;" nl
+              "bottom -= STACK(bottom);" nl
+              "distance = FP - bottom;" nl
+              "for (i=FP, j=bottom; i<SP; i++, j++) {" nl
+                "STACK(j) = STACK(i);" nl
+              "}" nl
+              "SP = j;" nl
+              "}" nl
+              "MOV(FP, R1);" nl
+              "JUMPA(INDD(R0, 2));" nl
+              ))))
+
+(define code-gen-fvar
+    (lambda(expr const-table global-table major)
+        (let* ((var-name (cadr expr))
+               (var-addr (member-global-table var-name global-table)))
+             (string-append
+                "// " (format "~s" expr) nl
+                "MOV(R0, INDD(GLOBAL_TABLE," (number->string var-addr) "));" nl
+                ))))
+
+(define code-gen-pvar
+    (lambda(expr const-table global-table major)
+        (let ((var-name (cadr expr))
+              (minor (caddr expr)))
+            (string-append
+               "// " (format "~s" expr) nl
+               "MOV(R0, FPARG(" (number->string (+ 2 minor)) "));" nl))))
+
+(define code-gen-bvar
+    (lambda(expr const-table global-table major)
+        (let ((var-name (cadr expr))
+              (major (caddr expr))
+              (minor (cadddr expr)))
+             (string-append
+               "// " (format "~s" expr) nl
+               "MOV(R0, FPARG(0));" nl
+               "MOV(R0, INDD(R0, " (number->string major) "));" nl
+               "MOV(R0, INDD(R0, " (number->string minor) "));" nl))))
+
+(define code-gen-define
+    (lambda(expr const-table global-table major)
+        (let* ((var (cadr (cadr expr)))
+               (val (caddr expr))
+               (address (member-global-table var global-table)))
+             (if address
+               (string-append
+                 "// define " (format "~s" var) nl
+                 "MOV(R1, GLOBAL_TABLE);" nl
+                 "ADD(R1, " (number->string address) ");" nl
+                 "PUSH(R1); // Save pointer to fvar" nl
+                 (code-gen val const-table global-table major)
+                 "POP(R1); // Restore pointer to fvar" nl
+                 "MOV(IND(R1), R0);" nl
+                 "MOV(R0, SOB_VOID);" nl)
+               (string-append "JUMP(L_error_define_not_fvar);" nl))
+              )))
