@@ -30,7 +30,7 @@ JUMP(CONTINUE);
 INIT_CONST_TABLE:
 PUSH(FP);
 MOV(FP, SP);
-PUSH(IMM(12));
+PUSH(IMM(10));
 CALL(MALLOC);
 DROP(1);
 MOV(CONST_TABLE, R0);
@@ -44,8 +44,6 @@ MOV(INDD(CONST_TABLE, 6), IMM(T_INTEGER));
 MOV(INDD(CONST_TABLE, 7), IMM(0));
 MOV(INDD(CONST_TABLE, 8), IMM(T_INTEGER));
 MOV(INDD(CONST_TABLE, 9), IMM(1));
-MOV(INDD(CONST_TABLE, 10), IMM(T_INTEGER));
-MOV(INDD(CONST_TABLE, 11), IMM(2));
 POP(FP);
 RETURN;
 
@@ -53,7 +51,7 @@ RETURN;
 INIT_GLOBAL_TABLE:
 PUSH(FP);
 MOV(FP, SP);
-PUSH(IMM(23));
+PUSH(IMM(24));
 CALL(MALLOC);
 DROP(1);
 MOV(GLOBAL_TABLE, R0);
@@ -201,7 +199,7 @@ CMP(FPARG(1), IMM(1));
 JUMP_NE(L_err_lambda_args_count);
 MOV(R1, FPARG(2));
 CMP(INDD(R1, 0), T_PAIR);
-JUMP_NE(L_err_car_not_pair);
+JUMP_NE(L_err_invalid_param);
 MOV(R0, INDD(R1, 1));
 POP(FP);
 RETURN;
@@ -220,7 +218,7 @@ CMP(FPARG(1), IMM(1));
 JUMP_NE(L_err_lambda_args_count);
 MOV(R1, FPARG(2));
 CMP(INDD(R1, 0), T_PAIR);
-JUMP_NE(L_err_cdr_not_pair);
+JUMP_NE(L_err_invalid_param);
 MOV(R0, INDD(R1, 2));
 POP(FP);
 RETURN;
@@ -732,13 +730,15 @@ JUMP_LE(GT_EXIT);
 MOV(R4, STACK(R2));
 CMP(INDD(R4,0), T_INTEGER);
 JUMP_NE(L_err_invalid_param);
-CMP(INDD(R4,1), INDD(R3, 1));
-JUMP_LE(GT_NOT_EQ);
+CMP(INDD(R3,1), INDD(R4, 1));
+JUMP_LE(GT_NOT_GT);
+MOV(R3, STACK(R2));
 DECR(R2);
 DECR(R1);
 JUMP(GT_LOOP);
-GT_NOT_EQ:
-MOV(R0, IMM(SOB_FALSE));JUMP(GT_EXIT);
+GT_NOT_GT:
+MOV(R0, IMM(SOB_FALSE));
+JUMP(GT_EXIT);
 GT_EXIT:
 POP(FP);
 RETURN;
@@ -986,6 +986,7 @@ PUSH(IMM(E_MAP));
 CALL(MAKE_SOB_CLOSURE);
 DROP(2);
 MOV(INDD(GLOBAL_TABLE, 22), IMM(R0));
+MOV(INDD(GLOBAL_TABLE, 23), IMM(T_UNDEFINED));
 
 MOV(R0, CONST_TABLE);
 ADD(R0, 1);
@@ -1056,26 +1057,10 @@ PUSH(IMM(R0));
 CALL(WRITELN);
 DROP(1)
 JUMP(EXIT);
-L_err_car_not_pair:
-PUSH(IMM('M')); PUSH(IMM('A')); PUSH(IMM('Y')); PUSH(IMM('E')); PUSH(IMM('R')); PUSH(IMM('-')); PUSH(IMM('E')); PUSH(IMM('X')); PUSH(IMM('C')); PUSH(IMM('E')); PUSH(IMM('P')); PUSH(IMM('T')); PUSH(IMM('I')); PUSH(IMM('O')); PUSH(IMM('N')); PUSH(IMM(':')); PUSH(IMM(' ')); PUSH(IMM('C')); PUSH(IMM('a')); PUSH(IMM('r')); PUSH(IMM(' ')); PUSH(IMM('r')); PUSH(IMM('e')); PUSH(IMM('c')); PUSH(IMM('e')); PUSH(IMM('i')); PUSH(IMM('v')); PUSH(IMM('e')); PUSH(IMM('d')); PUSH(IMM(' ')); PUSH(IMM('p')); PUSH(IMM('a')); PUSH(IMM('r')); PUSH(IMM('a')); PUSH(IMM('m')); PUSH(IMM(' ')); PUSH(IMM('t')); PUSH(IMM('h')); PUSH(IMM('a')); PUSH(IMM('t')); PUSH(IMM(' ')); PUSH(IMM('i')); PUSH(IMM('s')); PUSH(IMM('n')); PUSH(IMM('t')); PUSH(IMM(' ')); PUSH(IMM('a')); PUSH(IMM(' ')); PUSH(IMM('p')); PUSH(IMM('a')); PUSH(IMM('i')); PUSH(IMM('r')); PUSH(IMM('!')); PUSH(IMM(53));
-CALL(MAKE_SOB_STRING);
-DROP(54);
-PUSH(IMM(R0));
-CALL(WRITELN);
-DROP(1)
-JUMP(EXIT);
-L_err_cdr_not_pair:
-PUSH(IMM('M')); PUSH(IMM('A')); PUSH(IMM('Y')); PUSH(IMM('E')); PUSH(IMM('R')); PUSH(IMM('-')); PUSH(IMM('E')); PUSH(IMM('X')); PUSH(IMM('C')); PUSH(IMM('E')); PUSH(IMM('P')); PUSH(IMM('T')); PUSH(IMM('I')); PUSH(IMM('O')); PUSH(IMM('N')); PUSH(IMM(':')); PUSH(IMM(' ')); PUSH(IMM('C')); PUSH(IMM('d')); PUSH(IMM('r')); PUSH(IMM(' ')); PUSH(IMM('r')); PUSH(IMM('e')); PUSH(IMM('c')); PUSH(IMM('e')); PUSH(IMM('i')); PUSH(IMM('v')); PUSH(IMM('e')); PUSH(IMM('d')); PUSH(IMM(' ')); PUSH(IMM('p')); PUSH(IMM('a')); PUSH(IMM('r')); PUSH(IMM('a')); PUSH(IMM('m')); PUSH(IMM(' ')); PUSH(IMM('t')); PUSH(IMM('h')); PUSH(IMM('a')); PUSH(IMM('t')); PUSH(IMM(' ')); PUSH(IMM('i')); PUSH(IMM('s')); PUSH(IMM('n')); PUSH(IMM('t')); PUSH(IMM(' ')); PUSH(IMM('a')); PUSH(IMM(' ')); PUSH(IMM('p')); PUSH(IMM('a')); PUSH(IMM('i')); PUSH(IMM('r')); PUSH(IMM('!')); PUSH(IMM(53));
-CALL(MAKE_SOB_STRING);
-DROP(54);
-PUSH(IMM(R0));
-CALL(WRITELN);
-DROP(1)
-JUMP(EXIT);
 L_err_invalid_param:
-PUSH(IMM('M')); PUSH(IMM('A')); PUSH(IMM('Y')); PUSH(IMM('E')); PUSH(IMM('R')); PUSH(IMM('-')); PUSH(IMM('E')); PUSH(IMM('X')); PUSH(IMM('C')); PUSH(IMM('E')); PUSH(IMM('P')); PUSH(IMM('T')); PUSH(IMM('I')); PUSH(IMM('O')); PUSH(IMM('N')); PUSH(IMM(':')); PUSH(IMM(' ')); PUSH(IMM('I')); PUSH(IMM('n')); PUSH(IMM('v')); PUSH(IMM('a')); PUSH(IMM('l')); PUSH(IMM('i')); PUSH(IMM('d')); PUSH(IMM(' ')); PUSH(IMM('p')); PUSH(IMM('a')); PUSH(IMM('r')); PUSH(IMM('a')); PUSH(IMM('m')); PUSH(IMM(' ')); PUSH(IMM('g')); PUSH(IMM('i')); PUSH(IMM('v')); PUSH(IMM('e')); PUSH(IMM('n')); PUSH(IMM('!')); PUSH(IMM(37));
+PUSH(IMM('M')); PUSH(IMM('A')); PUSH(IMM('Y')); PUSH(IMM('E')); PUSH(IMM('R')); PUSH(IMM('-')); PUSH(IMM('E')); PUSH(IMM('X')); PUSH(IMM('C')); PUSH(IMM('E')); PUSH(IMM('P')); PUSH(IMM('T')); PUSH(IMM('I')); PUSH(IMM('O')); PUSH(IMM('N')); PUSH(IMM(':')); PUSH(IMM(' ')); PUSH(IMM('F')); PUSH(IMM('u')); PUSH(IMM('n')); PUSH(IMM('c')); PUSH(IMM('t')); PUSH(IMM('i')); PUSH(IMM('o')); PUSH(IMM('n')); PUSH(IMM(' ')); PUSH(IMM('r')); PUSH(IMM('e')); PUSH(IMM('c')); PUSH(IMM('e')); PUSH(IMM('i')); PUSH(IMM('v')); PUSH(IMM('e')); PUSH(IMM('d')); PUSH(IMM(' ')); PUSH(IMM('i')); PUSH(IMM('n')); PUSH(IMM('v')); PUSH(IMM('a')); PUSH(IMM('l')); PUSH(IMM('i')); PUSH(IMM('d')); PUSH(IMM(' ')); PUSH(IMM('p')); PUSH(IMM('a')); PUSH(IMM('r')); PUSH(IMM('a')); PUSH(IMM('m')); PUSH(IMM('!')); PUSH(IMM(49));
 CALL(MAKE_SOB_STRING);
-DROP(38);
+DROP(50);
 PUSH(IMM(R0));
 CALL(WRITELN);
 DROP(1)
@@ -1107,18 +1092,119 @@ CALL(INIT_CONST_TABLE);
 CALL(INIT_GLOBAL_TABLE);
 
 
+// define f
+MOV(R1, GLOBAL_TABLE);
+ADD(R1, 23);
+PUSH(R1); // Save pointer to fvar
+// lambda
+// Allocate env list
+MOV(R1, FPARG(0));
+PUSH(IMM(1));
+CALL(MALLOC);
+DROP(1);
+MOV(R2, R0);
+
+// Copy old env
+XOR(R3, R3);
+MOV(R4, 1);
+L_clos_copy_env_begin_g33:
+CMP(R3, IMM(0));
+JUMP_GE(L_clos_copy_env_exit_g34);
+MOV(R5, R2);
+ADD(R5, R4);
+MOV(R6, R1);
+ADD(R6, R3);
+MOV(IND(R5), IND(R6));
+INCR(R3);
+INCR(R4);
+JUMP(L_clos_copy_env_begin_g33);
+L_clos_copy_env_exit_g34:
+
+// Allocate current env
+MOV(R3, FPARG(1)); // Number of last lambda params
+PUSH(IMM(R3));
+CALL(MALLOC);
+DROP(1);
+MOV(IND(R2), R0);
+CMP(R3, IMM(0));
+JUMP_NE(L_clos_params_not_empty_g37);
+MOV(IND(R2), IMM(E_EMPTY));
+L_clos_params_not_empty_g37:
+
+// Copy last lambda params
+XOR(R4, R4);
+MOV(R5, 1);
+L_clos_copy_params_begin_g35:
+CMP(R4, IMM(R3));
+JUMP_GE(L_clos_copy_params_exit_g36);
+MOV(R6, IND(R2));
+ADD(R6, R4);
+MOV(R7, IMM(FP));
+SUB(R7, IMM(4));
+SUB(R7, IMM(R5));
+MOV(IND(R6), STACK(R7));
+INCR(R4);
+INCR(R5);
+JUMP(L_clos_copy_params_begin_g35);
+L_clos_copy_params_exit_g36:
+
+// Allocate closure object
+PUSH(IMM(3));
+CALL(MALLOC);
+DROP(1);
+MOV(INDD(R0, 0), T_CLOSURE);
+MOV(INDD(R0, 1), IMM(R2)); // env
+MOV(INDD(R0, 2), LABEL(L_clos_body_g32));
+JUMP(L_clos_exit_g38);
+
+// Body 
+L_clos_body_g32:
+PUSH(FP);
+MOV(FP, SP);
+MOV(R3, FP);
+SUB(R3, 4);
+MOV(R2, FP);
+SUB(R2, 4);
+SUB(R2, FPARG(1));
+MOV(R1, SOB_NIL);
+LAMBDA_VAR_LOOP:
+CMP(R2, R3);
+JUMP_LE(LAMBDA_VAR_LOOP_END);
+PUSH(STACK(R2));
+PUSH(R1);
+CALL(MAKE_SOB_PAIR);
+DROP(2);
+MOV(R1, R0);
+INCR(R2);
+JUMP(LAMBDA_VAR_LOOP);
+LAMBDA_VAR_LOOP_END:
+MOV(R7, R1); // Save param list
+{
+int top=IMM(FP)-4;
+int bottom=IMM(FP)-4;
+bottom -= STACK(bottom);
+MOV(STACK(bottom), IMM(R7));
+for (top; top < FP; top++, bottom++)
+   MOV(STACK(bottom), STACK(top));
+MOV(SP, bottom);
+}
+// (pvar v 0)
+MOV(R0, FPARG(2));
+POP(FP);
+RETURN;
+
+L_clos_exit_g38:
+POP(R1); // Restore pointer to fvar
+MOV(IND(R1), R0);
+MOV(R0, SOB_VOID);
 // applic
-// (const 2)
-MOV(R0, CONST_TABLE);
-ADD(R0, 10);
-PUSH(IMM(R0));
 // (const 1)
 MOV(R0, CONST_TABLE);
 ADD(R0, 8);
 PUSH(IMM(R0));
-PUSH(IMM(2)); // Num of params
-// (fvar >)
-MOV(R0, INDD(GLOBAL_TABLE,21));
+PUSH(IMM(1)); // Num of params
+// (fvar f)
+MOV(R0, INDD(GLOBAL_TABLE,23));
 CMP(INDD(R0, 0), IMM(T_CLOSURE));
 JUMP_NE(L_err_cannot_apply_non_clos);
 PUSH(INDD(R0, 1));

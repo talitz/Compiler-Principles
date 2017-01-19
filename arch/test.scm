@@ -1,1 +1,2 @@
-(> 1 2)
+(define f (lambda v v))
+(f 1)

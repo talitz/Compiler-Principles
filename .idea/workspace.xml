@@ -2,12 +2,8 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="055aa2a0-97b1-45c6-b577-9986729c04db" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/arch/lib/scheme/write_sob_fraction.asm" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/arch/test" afterPath="$PROJECT_DIR$/arch/test" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/arch/lib/scheme/types.inc" afterPath="$PROJECT_DIR$/arch/lib/scheme/types.inc" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/arch/lib/scheme/write_sob.asm" afterPath="$PROJECT_DIR$/arch/lib/scheme/write_sob.asm" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/arch/scheme.lib" afterPath="$PROJECT_DIR$/arch/scheme.lib" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/arch/test.c" afterPath="$PROJECT_DIR$/arch/test.c" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/arch/test.scm" afterPath="$PROJECT_DIR$/arch/test.scm" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/compiler.scm" afterPath="$PROJECT_DIR$/compiler.scm" />
@@ -30,11 +26,11 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="compiler.scm" pinned="false" current-in-tab="false">
+      <file leaf-file-name="compiler.scm" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/compiler.scm">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="362">
-              <caret line="1604" column="34" selection-start-line="1604" selection-start-column="34" selection-end-line="1604" selection-end-column="34" />
+            <state relative-caret-position="462">
+              <caret line="1988" column="11" selection-start-line="1988" selection-start-column="11" selection-end-line="1988" selection-end-column="11" />
               <folding />
             </state>
           </provider>
@@ -83,8 +79,8 @@
       <file leaf-file-name="test.scm" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/arch/test.scm">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="0">
-              <caret line="0" column="6" selection-start-line="0" selection-start-column="6" selection-end-line="0" selection-end-column="6" />
+            <state relative-caret-position="22">
+              <caret line="1" column="5" selection-start-line="1" selection-start-column="5" selection-end-line="1" selection-end-column="5" />
               <folding />
             </state>
           </provider>
@@ -100,11 +96,11 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="test.c" pinned="false" current-in-tab="true">
+      <file leaf-file-name="test.c" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/arch/test.c">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="636">
-              <caret line="734" column="8" selection-start-line="734" selection-start-column="8" selection-end-line="734" selection-end-column="8" />
+            <state relative-caret-position="418">
+              <caret line="1169" column="5" selection-start-line="1169" selection-start-column="5" selection-end-line="1169" selection-end-column="5" />
               <folding />
             </state>
           </provider>
@@ -161,8 +157,8 @@
         <option value="$PROJECT_DIR$/arch/scheme.lib" />
         <option value="$PROJECT_DIR$/arch/lib/scheme/write_sob_fraction.asm" />
         <option value="$PROJECT_DIR$/arch/lib/scheme/types.inc" />
-        <option value="$PROJECT_DIR$/arch/test.c" />
         <option value="$PROJECT_DIR$/arch/test.scm" />
+        <option value="$PROJECT_DIR$/arch/test.c" />
         <option value="$PROJECT_DIR$/compiler.scm" />
       </list>
     </option>
@@ -770,24 +766,24 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/arch/test.scm">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="6" selection-start-line="0" selection-start-column="6" selection-end-line="0" selection-end-column="6" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/compiler.scm">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="362">
-          <caret line="1604" column="34" selection-start-line="1604" selection-start-column="34" selection-end-line="1604" selection-end-column="34" />
+        <state relative-caret-position="22">
+          <caret line="1" column="5" selection-start-line="1" selection-start-column="5" selection-end-line="1" selection-end-column="5" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/arch/test.c">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="636">
-          <caret line="734" column="8" selection-start-line="734" selection-start-column="8" selection-end-line="734" selection-end-column="8" />
+        <state relative-caret-position="418">
+          <caret line="1169" column="5" selection-start-line="1169" selection-start-column="5" selection-end-line="1169" selection-end-column="5" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/compiler.scm">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="462">
+          <caret line="1988" column="11" selection-start-line="1988" selection-start-column="11" selection-end-line="1988" selection-end-column="11" />
           <folding />
         </state>
       </provider>

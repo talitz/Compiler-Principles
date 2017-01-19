@@ -1439,7 +1439,7 @@
        (let ((code (string-append
           "MOV(R1, FPARG(2));" nl
           "CMP(INDD(R1, 0), T_PAIR);" nl
-          "JUMP_NE(L_err_car_not_pair);" nl
+          "JUMP_NE(L_err_invalid_param);" nl
           "MOV(R0, INDD(R1, 1));" nl)))
          (make-primitive-from-code "L_car" "E_CAR" 1 code const-table global-table))))
 
@@ -1448,7 +1448,7 @@
        (let ((code (string-append
           "MOV(R1, FPARG(2));" nl
           "CMP(INDD(R1, 0), T_PAIR);" nl
-          "JUMP_NE(L_err_cdr_not_pair);" nl
+          "JUMP_NE(L_err_invalid_param);" nl
           "MOV(R0, INDD(R1, 2));" nl)))
          (make-primitive-from-code "L_cdr" "E_CDR" 1 code const-table global-table))))
 
@@ -1606,13 +1606,14 @@
             "MOV(R4, STACK(R2));" nl
             "CMP(INDD(R4,0), T_INTEGER);" nl
             "JUMP_NE(L_err_invalid_param);" nl
-            "CMP(INDD(R4,1), INDD(R3, 1));" nl
-            "JUMP_LE(GT_NOT_EQ);" nl
+            "CMP(INDD(R3,1), INDD(R4, 1));" nl
+            "JUMP_LE(GT_NOT_GT);" nl
+            "MOV(R3, STACK(R2));" nl
             "DECR(R2);" nl
             "DECR(R1);" nl
             "JUMP(GT_LOOP);" nl
-            "GT_NOT_EQ:" nl
-            "MOV(R0, IMM(SOB_FALSE));"
+            "GT_NOT_GT:" nl
+            "MOV(R0, IMM(SOB_FALSE));" nl
             "JUMP(GT_EXIT);" nl
             "GT_EXIT:" nl)))
          (make-primitive-from-code "L_GT" "E_GT" #f code const-table global-table))))
@@ -1765,9 +1766,7 @@
             (code-gen-error "L_err_cannot_apply_non_clos" "Applic called on non closure!")
             (code-gen-error "L_err_define_not_fvar" "Defined called on non fvar!")
             (code-gen-error "L_err_not_in_code_gen" "Code-gen called on unknown expression!")
-            (code-gen-error "L_err_car_not_pair" "Car received param that isnt a pair!")
-            (code-gen-error "L_err_cdr_not_pair" "Cdr received param that isnt a pair!")
-            (code-gen-error "L_err_invalid_param" "Invalid param given!")
+            (code-gen-error "L_err_invalid_param" "Function received invalid param!")
             nl
             nl
             code-gen-write-sob-if-not-void
@@ -1976,23 +1975,27 @@
     (lambda(params body const-table global-table major)
        (string-append
           func-prologue
-           "MOV(R3, FP);" nl
-           "SUB(R3, 4);" nl
-           "MOV(R2, FP);" nl
-           "SUB(R2, 4);" nl
-           "SUB(R2, FPARG(1));" nl
+           "// Save length of var list in R2" nl
+           "MOV(R2, FPARG(1));" nl
+           "SUB(R2, IMM(" (number->string (- (length params) 1)) "));" nl
+           nl
            "MOV(R1, SOB_NIL);" nl
-           "LAMBDA_VAR_LOOP:" nl
-           "CMP(R2, R3);" nl
-           "JUMP_LE(LAMBDA_VAR_LOOP_END);" nl
-           "PUSH(STACK(R2));" nl
-           "PUSH(R1);" nl
-           "CALL(MAKE_SOB_PAIR);" nl
-           "DROP(2);" nl
-           "MOV(R1, R0);" nl
-           "INCR(R2);" nl
-           "JUMP(LAMBDA_VAR_LOOP);" nl
-           "LAMBDA_VAR_LOOP_END:" nl
+           "MOV(R3, FP);" nl
+           "SUB(R3, 5);" nl
+           "SUB(R3, FPARG(1));" nl
+           "VAR_LIST_LOOP:" nl
+           "CMP(R2, 0);" nl
+           "JUMP_LE(VAR_LIST_LOOP_END);" nl
+           
+           "{" nl
+           "int top=IMM(FP)-4;" nl
+           "int bottom=IMM(FP)-4;" nl
+           "bottom -= STACK(bottom);" nl
+           "MOV(STACK(bottom), IMM(R7));" nl
+           "for (top; top < FP; top++, bottom++)" nl
+           "   MOV(STACK(bottom), STACK(top));" nl
+           "MOV(SP, bottom);" nl
+           "}" nl
            (code-gen body const-table global-table (+ major 1))
            func-epilogue)))
 
