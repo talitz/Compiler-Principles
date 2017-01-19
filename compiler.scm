@@ -1162,6 +1162,10 @@
                    (let ((output-file (open-output-file target-path)))
                       (display final-code output-file)
                       (close-output-port output-file)))))
+
+(define fraction?
+    (lambda(n) (and (not (integer? n)) (rational? n))))
+
 (print-gensym #f)
 
 (define read-expr-list
@@ -1221,7 +1225,9 @@
                   (string-repr (lambda(str)
                      (map (lambda(x) (number->string (char->integer x))) (string->list str)))))
             (cond ((member-const-table val const-table) const-table)
-                  ((number? val) (append const-table `((,new-addr ,val ("T_INTEGER" ,(number->string val))))))
+                  ((integer? val) (append const-table `((,new-addr ,val ("T_INTEGER" ,(number->string val))))))
+                  ((fraction? val) (append const-table `((,new-addr ,val
+                     ("T_FRACTION" ,(number->string (numerator val)) ,(number->string (denominator val)))))))
                   ((char? val) (append const-table `((,new-addr ,val ("T_CHAR"
                      ,(string-append "'" (string val) "'"))))))
                   ((string? val) (append const-table `((,new-addr ,val ("T_STRING"
@@ -1296,7 +1302,9 @@
                                   (17 null? ,make-null?)
                                   (18 integer->char ,make-integer->char)
                                   (19 char->integer ,make-char->integer)
-                                  (20 map ,make-map)))))
+                                  (20 = ,make-num-eq)
+                                  (21 > ,make-gt)
+                                  (22 map ,make-map)))))
              (make-global-table-helper parsed-expr-list global-table)
              (unbox global-table))))
 
@@ -1455,7 +1463,7 @@
 
 (define make-zero?
     (lambda(const-table global-table)
-        (make-primitive-from-scheme "L_zero" "E_ZERO" '(lambda(x) (eq? x 0)) const-table global-table)))
+        (make-primitive-from-scheme "L_zero" "E_ZERO" '(lambda(x) (and (integer? x) (= x 0))) const-table global-table)))
 
 (define make-null?
     (lambda(const-table global-table)
@@ -1513,27 +1521,6 @@
             "DROP(1);" nl)))
          (make-primitive-from-code "L_plus" "E_PLUS" #f code const-table global-table))))
 
-(define make-plus
-    (lambda(const-table global-table)
-       (let ((code (string-append
-            "MOV(R1, FPARG(1)); // Num of params" nl
-            "MOV(R0, IMM(0));" nl
-            "MOV(R2, IMM(FP));" nl
-            "SUB(R2, IMM(5));" nl
-            "PLUS_LOOP:" nl
-            "CMP(R1, IMM(0));" nl
-            "JUMP_LE(PLUS_EXIT);" nl
-            "MOV(R3, STACK(R2));" nl
-            "ADD(R0, INDD(R3, 1));" nl
-            "DECR(R2);" nl
-            "DECR(R1);" nl
-            "JUMP(PLUS_LOOP);" nl
-            "PLUS_EXIT:" nl
-            "PUSH(IMM(R0));" nl
-            "CALL(MAKE_SOB_INTEGER);" nl
-            "DROP(1);" nl)))
-         (make-primitive-from-code "L_plus" "E_PLUS" #f code const-table global-table))))
-
 (define make-int-to-bool
     (lambda(const-table global-table)
         (let ((code (string-append
@@ -1554,6 +1541,12 @@
             "MOV(R0, IMM(0));" nl
             "MOV(R2, IMM(FP));" nl
             "SUB(R2, IMM(5));" nl
+            "CMP(FPARG(1), IMM(1));" nl
+            "JUMP_EQ(MINUS_LOOP);" nl
+            "MOV(R0, STACK(R2));" nl
+            "MOV(R0, INDD(R0, 1));" nl
+            "DECR(R2);" nl
+            "DECR(R1);" nl
             "MINUS_LOOP:" nl
             "CMP(R1, IMM(0));" nl
             "JUMP_LE(MINUS_EXIT);" nl
@@ -1568,6 +1561,62 @@
             "DROP(1);" nl)))
          (make-primitive-from-code "L_minus" "E_MINUS" #f code const-table global-table))))
 
+; = primitive
+(define make-num-eq
+    (lambda(const-table global-table)
+       (let ((code (string-append
+            "MOV(R1, FPARG(1)); // Num of params" nl
+            "CMP(R1, 0);" nl
+            "JUMP_EQ(L_err_lambda_args_count);" nl
+            "MOV(R2, IMM(FP));" nl
+            "SUB(R2, IMM(5));" nl
+            "MOV(R3, STACK(R2));" nl
+            "MOV(R0, IMM(SOB_TRUE));" nl
+            "NUM_EQ_LOOP:" nl
+            "CMP(R1, IMM(0));" nl
+            "JUMP_LE(NUM_EQ_EXIT);" nl
+            "MOV(R4, STACK(R2));" nl
+            "CMP(INDD(R4,0), T_INTEGER);" nl
+            "JUMP_NE(L_err_invalid_param);" nl
+            "CMP(INDD(R4,1), INDD(R3, 1));" nl
+            "JUMP_NE(NUM_EQ_NOT_EQ);" nl
+            "DECR(R2);" nl
+            "DECR(R1);" nl
+            "JUMP(NUM_EQ_LOOP);" nl
+            "NUM_EQ_NOT_EQ:" nl
+            "MOV(R0, IMM(SOB_FALSE));"
+            "JUMP(NUM_EQ_EXIT);" nl
+            "NUM_EQ_EXIT:" nl)))
+         (make-primitive-from-code "L_NUM_EQ" "E_NUM_EQ" #f code const-table global-table))))
+
+(define make-gt
+    (lambda(const-table global-table)
+       (let ((code (string-append
+            "MOV(R1, FPARG(1)); // Num of params" nl
+            "CMP(R1, 0);" nl
+            "JUMP_EQ(L_err_lambda_args_count);" nl
+            "MOV(R2, IMM(FP));" nl
+            "SUB(R2, IMM(5));" nl
+            "MOV(R3, STACK(R2));" nl
+            "DECR(R2);" nl
+            "MOV(R0, IMM(SOB_TRUE));" nl
+            "GT_LOOP:" nl
+            "CMP(R1, IMM(1));" nl
+            "JUMP_LE(GT_EXIT);" nl
+            "MOV(R4, STACK(R2));" nl
+            "CMP(INDD(R4,0), T_INTEGER);" nl
+            "JUMP_NE(L_err_invalid_param);" nl
+            "CMP(INDD(R4,1), INDD(R3, 1));" nl
+            "JUMP_LE(GT_NOT_EQ);" nl
+            "DECR(R2);" nl
+            "DECR(R1);" nl
+            "JUMP(GT_LOOP);" nl
+            "GT_NOT_EQ:" nl
+            "MOV(R0, IMM(SOB_FALSE));"
+            "JUMP(GT_EXIT);" nl
+            "GT_EXIT:" nl)))
+         (make-primitive-from-code "L_GT" "E_GT" #f code const-table global-table))))
+
 (define make-char->integer
     (lambda(const-table global-table)
        (let ((code (string-append
@@ -1576,7 +1625,7 @@
           "CALL(IS_SOB_CHAR);" nl
           "DROP(1);" nl
           "CMP(R0,0);" nl
-          "JUMP_EQ(L_err_char_to_integer_invalid_param);" nl
+          "JUMP_EQ(L_err_invalid_param);" nl
           "MOV(R0, INDD(R1, 1));" nl
           "PUSH(IMM(R0));"
           "CALL(MAKE_SOB_INTEGER);" nl
@@ -1591,7 +1640,7 @@
           "CALL(IS_SOB_INTEGER);" nl
           "DROP(1);" nl
           "CMP(R0,0);" nl
-          "JUMP_EQ(L_err_integer_to_char_invalid_param);" nl
+          "JUMP_EQ(L_err_invalid_param);" nl
           "MOV(R0, INDD(R1, 1));" nl
           "PUSH(IMM(R0));"
           "CALL(MAKE_SOB_CHAR);" nl
@@ -1718,8 +1767,7 @@
             (code-gen-error "L_err_not_in_code_gen" "Code-gen called on unknown expression!")
             (code-gen-error "L_err_car_not_pair" "Car received param that isnt a pair!")
             (code-gen-error "L_err_cdr_not_pair" "Cdr received param that isnt a pair!")
-            (code-gen-error "L_err_char_to_integer_invalid_param" "Char to integer received invalid param!")
-            (code-gen-error "L_err_integer_to_char_invalid_param" "Integer to char received invalid param!")
+            (code-gen-error "L_err_invalid_param" "Invalid param given!")
             nl
             nl
             code-gen-write-sob-if-not-void
@@ -2069,7 +2117,7 @@
     (lambda(expr const-table global-table major)
        (let* ((var (car expr))
               (var-addr (member-global-table (cadr var) global-table))
-              val (cadr expr))
+              (val (cadr expr)))
         (string-append
            (code-gen val const-table global-table major)
            "MOV(INDD(GLOBAL_TABLE, " (number->string var-addr) "), IMM(R0));" nl

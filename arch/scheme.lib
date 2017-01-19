@@ -29,6 +29,7 @@
 #include "lib/scheme/write_sob_bool.asm"
 #include "lib/scheme/write_sob_char.asm"
 #include "lib/scheme/write_sob_integer.asm"
+#include "lib/scheme/write_sob_fraction.asm"
 #include "lib/scheme/write_sob_pair.asm"
 #include "lib/scheme/write_sob_closure.asm"
 #include "lib/scheme/write_sob_string.asm"
