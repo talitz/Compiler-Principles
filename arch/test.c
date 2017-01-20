@@ -1161,27 +1161,31 @@ JUMP(L_clos_exit_g38);
 L_clos_body_g32:
 PUSH(FP);
 MOV(FP, SP);
+// Save length of var list in R2
+MOV(R2, FPARG(1));
+SUB(R2, IMM(0));
+// Begin var list copy loop
+MOV(R0, SOB_NIL);
 MOV(R3, FP);
 SUB(R3, 4);
-MOV(R2, FP);
-SUB(R2, 4);
-SUB(R2, FPARG(1));
-MOV(R1, SOB_NIL);
-LAMBDA_VAR_LOOP:
-CMP(R2, R3);
-JUMP_LE(LAMBDA_VAR_LOOP_END);
-PUSH(STACK(R2));
-PUSH(R1);
+SUB(R3, FPARG(1));
+VAR_LIST_LOOP:
+CMP(R2, 0);
+JUMP_LE(VAR_LIST_LOOP_END);
+PUSH(STACK(R3));
+PUSH(IMM(R0));
 CALL(MAKE_SOB_PAIR);
-DROP(2);
-MOV(R1, R0);
-INCR(R2);
-JUMP(LAMBDA_VAR_LOOP);
-LAMBDA_VAR_LOOP_END:
-MOV(R7, R1); // Save param list
+MOV(R1, IMM(R0));INCR(R3);
+DECR(R2);
+JUMP(VAR_LIST_LOOP);
+VAR_LIST_LOOP_END:
+// Save the var list
+MOV(R7, R1);
 {
 int top=IMM(FP)-4;
 int bottom=IMM(FP)-4;
+SHOW("", top);
+SHOW("", bottom);
 bottom -= STACK(bottom);
 MOV(STACK(bottom), IMM(R7));
 for (top; top < FP; top++, bottom++)

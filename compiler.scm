@@ -1978,15 +1978,24 @@
            "// Save length of var list in R2" nl
            "MOV(R2, FPARG(1));" nl
            "SUB(R2, IMM(" (number->string (- (length params) 1)) "));" nl
-           nl
-           "MOV(R1, SOB_NIL);" nl
+           "// Begin var list copy loop" nl
+           "MOV(R0, SOB_NIL);" nl
            "MOV(R3, FP);" nl
-           "SUB(R3, 5);" nl
+           "SUB(R3, 4);" nl
            "SUB(R3, FPARG(1));" nl
            "VAR_LIST_LOOP:" nl
            "CMP(R2, 0);" nl
            "JUMP_LE(VAR_LIST_LOOP_END);" nl
-           
+           "PUSH(STACK(R3));" nl
+           "PUSH(IMM(R0));" nl
+           "CALL(MAKE_SOB_PAIR);" nl
+           "MOV(R1, IMM(R0));"
+           "INCR(R3);" nl
+           "DECR(R2);" nl
+           "JUMP(VAR_LIST_LOOP);" nl
+           "VAR_LIST_LOOP_END:" nl
+           "// Save the var list" nl
+           "MOV(R7, R1);" nl
            "{" nl
            "int top=IMM(FP)-4;" nl
            "int bottom=IMM(FP)-4;" nl
