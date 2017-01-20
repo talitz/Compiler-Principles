@@ -17,6 +17,29 @@
   : ((x) == T_UNDEFINED) ? snprintf(res, 16, "%s", "T_UNDEFINED")              \
   : ((x) == E_EMPTY)   ? snprintf(res, 16, "%s", "E_EMPTY")                    \
   : ((x) == E_EQ)      ? snprintf(res, 16, "%s", "E_EQ")                       \
+  : ((x) == E_ZERO)      ? snprintf(res, 16, "%s", "E_ZERO")                       \
+  : ((x) == E_NOT)      ? snprintf(res, 16, "%s", "E_NOT")                       \
+  : ((x) == E_CAR)      ? snprintf(res, 16, "%s", "E_CAR")                       \
+  : ((x) == E_CDR)      ? snprintf(res, 16, "%s", "E_CDR")                       \
+  : ((x) == E_CONS)      ? snprintf(res, 16, "%s", "E_CONS")                       \
+  : ((x) == E_PLUS)      ? snprintf(res, 16, "%s", "E_PLUS")                       \
+  : ((x) == E_MINUS)      ? snprintf(res, 16, "%s", "E_MINUS")                       \
+  : ((x) == E_INTEGER)      ? snprintf(res, 16, "%s", "E_INTEGER")                       \
+  : ((x) == E_INT_TO_BOOL)      ? snprintf(res, 16, "%s", "E_INT_TO_BOOL")                       \
+  : ((x) == E_PINTEGER)      ? snprintf(res, 16, "%s", "E_PINTEGER")                       \
+  : ((x) == E_PBOOLEAN)      ? snprintf(res, 16, "%s", "E_PBOOLEAN")                       \
+  : ((x) == E_PCHAR)      ? snprintf(res, 16, "%s", "E_PCHAR")                       \
+  : ((x) == E_PSYMBOL)      ? snprintf(res, 16, "%s", "E_PSYMBOL")                       \
+  : ((x) == E_PVECTOR)      ? snprintf(res, 16, "%s", "E_PVECTOR")                       \
+  : ((x) == E_PSTRING)      ? snprintf(res, 16, "%s", "E_PSTRING")                       \
+  : ((x) == E_PNULL)      ? snprintf(res, 16, "%s", "E_PNULL")                       \
+  : ((x) == E_PLIST)      ? snprintf(res, 16, "%s", "E_PLIST")                       \
+  : ((x) == E_MAP)      ? snprintf(res, 16, "%s", "E_MAP")                       \
+  : ((x) == E_CHAR_TO_INTEGER)      ? snprintf(res, 16, "%s", "E_CHAR_TO_INTEGER")                       \
+  : ((x) == E_INTEGER_TO_CHAR)      ? snprintf(res, 16, "%s", "E_INTEGER_TO_CHAR")                       \
+  : ((x) == E_LIST)      ? snprintf(res, 16, "%s", "E_LIST")                       \
+  : ((x) == E_NUM_EQ)      ? snprintf(res, 16, "%s", "E_NUM_EQ")                       \
+  : ((x) == E_GT)      ? snprintf(res, 16, "%s", "E_GT")              \
   : snprintf(res, 16, "%ld", (x)))
 
 #if DO_SHOW == 0

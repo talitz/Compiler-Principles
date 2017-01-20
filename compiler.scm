@@ -1304,7 +1304,8 @@
                                   (19 char->integer ,make-char->integer)
                                   (20 = ,make-num-eq)
                                   (21 > ,make-gt)
-                                  (22 map ,make-map)))))
+                                  (22 map ,make-map)
+                                  (23 list ,make-clist)))))
              (make-global-table-helper parsed-expr-list global-table)
              (unbox global-table))))
 
@@ -1404,9 +1405,13 @@
 (define make-primitive-from-scheme
     (lambda(label env-name scheme-code const-table global-table)
         (let* ((parsed-code (full-parse scheme-code))
+               (lambda-def (lambda-get-def parsed-code))
                (body-code (lambda-get-body parsed-code))
-               (num-params (length (lambda-get-listed-params parsed-code)))
-               (code (code-gen body-code const-table global-table 0)))
+               (params (lambda-get-listed-params parsed-code))
+               (num-params (if (eq? (car parsed-code) 'lambda-simple)
+                  (length params)
+                  #f))
+               (code (create-lambda-body lambda-def params body-code const-table global-table 0)))
             (make-primitive-from-code label env-name num-params code const-table global-table))))
 
 (define make-primitive-from-code
@@ -1488,13 +1493,9 @@
                  (cons (fun (car lst)) (map fun (cdr lst))))))))
            (make-primitive-from-scheme "L_map" "E_MAP" code const-table global-table))))
 
-;(define make-clist
-;    (lambda(const-table global-table)
-;       (let ((code '(lambda lst
-;           (if (null? lst)
-;              '()
-;              (cons (car lst) (list (cdr lst)))))))
-;           (make-primitive-from-scheme "L_list" "E_LIST" code const-table global-table))))
+(define make-clist
+    (lambda(const-table global-table)
+        (make-primitive-from-scheme "L_list" "E_LIST" '(lambda v v) const-table global-table)))
 
 (define make-not
     (lambda(const-table global-table)
@@ -1951,9 +1952,10 @@
                 "MOV(INDD(R0, 2), LABEL(" body-label "));" nl
                 "JUMP(" exit-label ");" nl
                 nl
-                "// Body " nl
                 body-label ":" nl
+                func-prologue
                 (create-lambda-body lambda-def params body const-table global-table major)
+                func-epilogue
                 nl
                 exit-label ":" nl
                 ))))
@@ -1961,52 +1963,96 @@
 (define create-lambda-body
     (lambda(lambda-def params body const-table global-table major)
        (cond ((eq? lambda-def 'lambda-simple) (create-lambda-simple-body params body const-table global-table major))
-             ((eq? lambda-def 'lambda-var) (create-lambda-var-body params body const-table global-table major)))))
+             ((or (eq? lambda-def 'lambda-var) (eq? lambda-def 'lambda-opt))
+               (create-lambda-opt-body params body const-table global-table major)))))
 
 (define create-lambda-simple-body
     (lambda(params body const-table global-table major)
        (string-append
-           func-prologue
+           "// Lambda-simple body" nl
            (code-gen-check-lambda-params (length params))
+           "// Actual body" nl
            (code-gen body const-table global-table (+ major 1))
-           func-epilogue)))
+           )))
 
-(define create-lambda-var-body
+(define create-lambda-opt-body
     (lambda(params body const-table global-table major)
-       (string-append
-          func-prologue
-           "// Save length of var list in R2" nl
-           "MOV(R2, FPARG(1));" nl
-           "SUB(R2, IMM(" (number->string (- (length params) 1)) "));" nl
-           "// Begin var list copy loop" nl
-           "MOV(R0, SOB_NIL);" nl
-           "MOV(R3, FP);" nl
-           "SUB(R3, 4);" nl
-           "SUB(R3, FPARG(1));" nl
-           "VAR_LIST_LOOP:" nl
-           "CMP(R2, 0);" nl
-           "JUMP_LE(VAR_LIST_LOOP_END);" nl
-           "PUSH(STACK(R3));" nl
-           "PUSH(IMM(R0));" nl
-           "CALL(MAKE_SOB_PAIR);" nl
-           "MOV(R1, IMM(R0));"
-           "INCR(R3);" nl
-           "DECR(R2);" nl
-           "JUMP(VAR_LIST_LOOP);" nl
-           "VAR_LIST_LOOP_END:" nl
-           "// Save the var list" nl
-           "MOV(R7, R1);" nl
-           "{" nl
-           "int top=IMM(FP)-4;" nl
-           "int bottom=IMM(FP)-4;" nl
-           "bottom -= STACK(bottom);" nl
-           "MOV(STACK(bottom), IMM(R7));" nl
-           "for (top; top < FP; top++, bottom++)" nl
-           "   MOV(STACK(bottom), STACK(top));" nl
-           "MOV(SP, bottom);" nl
-           "}" nl
-           (code-gen body const-table global-table (+ major 1))
-           func-epilogue)))
+       (let ((num-params (- (length params) 1))
+             (var-list-loop (label-gen "L_var_list_loop"))
+             (var-list-loop-end (label-gen "L_var_list_loop_end"))
+             (stack-loop (label-gen "L_stack_loop"))
+             (stack-fix-end (label-gen "L_stack_fix_end"))
+             (fix-stack-empty-var-list (label-gen "L_fix_stack_empty_var_list"))
+             (fix-stack-empty-loop (label-gen "L_fix_stack_empty_loop"))
+             (stack-fix-empty-end (label-gen "L_stack_fix_empty_end")))
+         (string-append
+            "// Lambda-opt/var body" nl
+            "// Init R2 with the length of the var list" nl
+            "MOV(R2, FPARG(1));" nl
+            "SUB(R2, IMM(" (number->string num-params) "));" nl
+            "// Save the var list length in R6 for later" nl
+            "MOV(R6, IMM(R2));" nl
+            "// Create var list" nl
+            "MOV(R0, SOB_NIL); // Result of var list in R0" nl
+            "MOV(R3, IMM(FP));" nl
+            "SUB(R3, IMM(4));" nl
+            "SUB(R3, FPARG(1)); // Save increasing stack pointer in R3" nl
+            var-list-loop ":" nl
+            "CMP(R2, 0);" nl
+            "JUMP_LE(" var-list-loop-end ");" nl
+            "PUSH(IMM(R0));" nl
+            "PUSH(STACK(R3));" nl
+            "CALL(MAKE_SOB_PAIR);" nl
+            "DROP(2);" nl
+            "INCR(R3);" nl
+            "DECR(R2);" nl
+            "JUMP(" var-list-loop ");" nl
+            var-list-loop-end ":" nl
+            "// Fix the stack" nl
+            "CMP(R6, 0);" nl
+            "JUMP_EQ(" fix-stack-empty-var-list ");" nl
+            "MOV(R1, IMM(FP));" nl
+            "SUB(R1, IMM(3));" nl
+            "SUB(R1, FPARG(1)); // R1 = bottom" nl
+            "MOV(R2, IMM(FP));" nl
+            "SUB(R2, IMM(" (number->string (+ 4 num-params)) ")); // R2 = bottom of non-optional params" nl
+            stack-loop ":" nl
+            "CMP(R2, IMM(FP));" nl
+            "JUMP_GE(" stack-fix-end ");" nl
+            "MOV(STACK(R1), STACK(R2));" nl
+            "INCR(R1);" nl
+            "INCR(R2);" nl
+            "JUMP(" stack-loop ");" nl
+            fix-stack-empty-var-list ":" nl
+            "// Init R3 with the loop limit (position of first optional var in original stack)" nl
+            "MOV(R3, IMM(FP));" nl
+            "SUB(R3, IMM(" (number->string (+ 4 num-params)) "));" nl
+            "MOV(R1, IMM(FP));" nl
+            "INCR(R1);" nl
+            "MOV(R2, IMM(FP));" nl
+            fix-stack-empty-loop ":" nl
+            "CMP(R2, IMM(R3));" nl
+            "JUMP_LE(" stack-fix-empty-end ");" nl
+            "MOV(STACK(R1), STACK(R2));" nl
+            "DECR(R1);" nl
+            "DECR(R2);" nl
+            "JUMP(" fix-stack-empty-loop ");" nl
+            stack-fix-empty-end ":" nl
+            "// Fix R1 to point to the new FP since the code below relies on that" nl
+            "MOV(R1, IMM(FP));" nl
+            "INCR(R1);" nl
+            stack-fix-end ":" nl
+            "// Fix FP and SP" nl
+            "MOV(FP, IMM(R1));" nl
+            "MOV(SP, IMM(FP));" nl
+            "// Fix the number of params" nl
+            "SUB(R1, IMM(4));" nl
+            "MOV(STACK(R1), IMM(R6));" nl
+            "// Write the var list" nl
+            "SUB(R1, IMM(" (number->string (+ num-params 1)) "));" nl
+            "MOV(STACK(R1), IMM(R0)); // Put the var list" nl
+            "// Actual body" nl
+            (code-gen body const-table global-table (+ major 1))))))
 
 (define code-gen-write-sob-if-not-void
     (string-append

@@ -30,7 +30,7 @@ JUMP(CONTINUE);
 INIT_CONST_TABLE:
 PUSH(FP);
 MOV(FP, SP);
-PUSH(IMM(10));
+PUSH(IMM(8));
 CALL(MALLOC);
 DROP(1);
 MOV(CONST_TABLE, R0);
@@ -42,8 +42,6 @@ MOV(INDD(CONST_TABLE, 4), IMM(T_BOOL));
 MOV(INDD(CONST_TABLE, 5), IMM(1));
 MOV(INDD(CONST_TABLE, 6), IMM(T_INTEGER));
 MOV(INDD(CONST_TABLE, 7), IMM(0));
-MOV(INDD(CONST_TABLE, 8), IMM(T_INTEGER));
-MOV(INDD(CONST_TABLE, 9), IMM(1));
 POP(FP);
 RETURN;
 
@@ -81,6 +79,10 @@ PUSH(FP);
 MOV(FP, SP);
 CMP(FPARG(1), IMM(1));
 JUMP_NE(L_err_lambda_args_count);
+// Lambda-simple body
+CMP(FPARG(1), IMM(1));
+JUMP_NE(L_err_lambda_args_count);
+// Actual body
 // if3
 // applic
 // (pvar x 0)
@@ -151,6 +153,10 @@ PUSH(FP);
 MOV(FP, SP);
 CMP(FPARG(1), IMM(1));
 JUMP_NE(L_err_lambda_args_count);
+// Lambda-simple body
+CMP(FPARG(1), IMM(1));
+JUMP_NE(L_err_lambda_args_count);
+// Actual body
 // tc-applic
 // (const #f)
 MOV(R0, CONST_TABLE);
@@ -467,6 +473,10 @@ PUSH(FP);
 MOV(FP, SP);
 CMP(FPARG(1), IMM(1));
 JUMP_NE(L_err_lambda_args_count);
+// Lambda-simple body
+CMP(FPARG(1), IMM(1));
+JUMP_NE(L_err_lambda_args_count);
+// Actual body
 // if3
 // applic
 // (pvar lst 0)
@@ -590,6 +600,10 @@ PUSH(FP);
 MOV(FP, SP);
 CMP(FPARG(1), IMM(1));
 JUMP_NE(L_err_lambda_args_count);
+// Lambda-simple body
+CMP(FPARG(1), IMM(1));
+JUMP_NE(L_err_lambda_args_count);
+// Actual body
 // tc-applic
 // (const ())
 MOV(R0, CONST_TABLE);
@@ -755,6 +769,10 @@ PUSH(FP);
 MOV(FP, SP);
 CMP(FPARG(1), IMM(2));
 JUMP_NE(L_err_lambda_args_count);
+// Lambda-simple body
+CMP(FPARG(1), IMM(2));
+JUMP_NE(L_err_lambda_args_count);
+// Actual body
 // if3
 // applic
 // (pvar lst 1)
@@ -986,7 +1004,87 @@ PUSH(IMM(E_MAP));
 CALL(MAKE_SOB_CLOSURE);
 DROP(2);
 MOV(INDD(GLOBAL_TABLE, 22), IMM(R0));
-MOV(INDD(GLOBAL_TABLE, 23), IMM(T_UNDEFINED));
+JUMP(L_make_closure_g39);
+L_list:
+PUSH(FP);
+MOV(FP, SP);
+// Lambda-opt/var body
+// Init R2 with the length of the var list
+MOV(R2, FPARG(1));
+SUB(R2, IMM(0));
+// Save the var list length in R6 for later
+MOV(R6, IMM(R2));
+// Create var list
+MOV(R0, SOB_NIL); // Result of var list in R0
+MOV(R3, IMM(FP));
+SUB(R3, IMM(4));
+SUB(R3, FPARG(1)); // Save increasing stack pointer in R3
+L_var_list_loop_g38:
+CMP(R2, 0);
+JUMP_LE(L_var_list_loop_end_g37);
+PUSH(IMM(R0));
+PUSH(STACK(R3));
+CALL(MAKE_SOB_PAIR);
+DROP(2);
+INCR(R3);
+DECR(R2);
+JUMP(L_var_list_loop_g38);
+L_var_list_loop_end_g37:
+// Fix the stack
+CMP(R6, 0);
+JUMP_EQ(L_fix_stack_empty_var_list_g34);
+MOV(R1, IMM(FP));
+SUB(R1, IMM(3));
+SUB(R1, FPARG(1)); // R1 = bottom
+MOV(R2, IMM(FP));
+SUB(R2, IMM(4)); // R2 = bottom of non-optional params
+L_stack_loop_g36:
+CMP(R2, IMM(FP));
+JUMP_GE(L_stack_fix_end_g35);
+MOV(STACK(R1), STACK(R2));
+INCR(R1);
+INCR(R2);
+JUMP(L_stack_loop_g36);
+L_fix_stack_empty_var_list_g34:
+// Init R3 with the loop limit (position of first optional var in original stack)
+MOV(R3, IMM(FP));
+SUB(R3, IMM(4));
+MOV(R1, IMM(FP));
+INCR(R1);
+MOV(R2, IMM(FP));
+L_fix_stack_empty_loop_g33:
+CMP(R2, IMM(R3));
+JUMP_LE(L_stack_fix_empty_end_g32);
+MOV(STACK(R1), STACK(R2));
+DECR(R1);
+DECR(R2);
+JUMP(L_fix_stack_empty_loop_g33);
+L_stack_fix_empty_end_g32:
+// Fix R1 to point to the new FP since the code below relies on that
+MOV(R1, IMM(FP));
+INCR(R1);
+L_stack_fix_end_g35:
+// Fix FP and SP
+MOV(FP, IMM(R1));
+MOV(SP, IMM(FP));
+// Fix the number of params
+SUB(R1, IMM(4));
+MOV(STACK(R1), IMM(R6));
+// Write the var list
+SUB(R1, IMM(1));
+MOV(STACK(R1), IMM(R0)); // Put the var list
+// Actual body
+// (pvar v 0)
+MOV(R0, FPARG(2));
+POP(FP);
+RETURN;
+L_make_closure_g39:
+// Create closure for L_list
+PUSH(LABEL(L_list));
+PUSH(IMM(E_LIST));
+CALL(MAKE_SOB_CLOSURE);
+DROP(2);
+MOV(INDD(GLOBAL_TABLE, 23), IMM(R0));
 
 MOV(R0, CONST_TABLE);
 ADD(R0, 1);
@@ -1092,122 +1190,9 @@ CALL(INIT_CONST_TABLE);
 CALL(INIT_GLOBAL_TABLE);
 
 
-// define f
-MOV(R1, GLOBAL_TABLE);
-ADD(R1, 23);
-PUSH(R1); // Save pointer to fvar
-// lambda
-// Allocate env list
-MOV(R1, FPARG(0));
-PUSH(IMM(1));
-CALL(MALLOC);
-DROP(1);
-MOV(R2, R0);
-
-// Copy old env
-XOR(R3, R3);
-MOV(R4, 1);
-L_clos_copy_env_begin_g33:
-CMP(R3, IMM(0));
-JUMP_GE(L_clos_copy_env_exit_g34);
-MOV(R5, R2);
-ADD(R5, R4);
-MOV(R6, R1);
-ADD(R6, R3);
-MOV(IND(R5), IND(R6));
-INCR(R3);
-INCR(R4);
-JUMP(L_clos_copy_env_begin_g33);
-L_clos_copy_env_exit_g34:
-
-// Allocate current env
-MOV(R3, FPARG(1)); // Number of last lambda params
-PUSH(IMM(R3));
-CALL(MALLOC);
-DROP(1);
-MOV(IND(R2), R0);
-CMP(R3, IMM(0));
-JUMP_NE(L_clos_params_not_empty_g37);
-MOV(IND(R2), IMM(E_EMPTY));
-L_clos_params_not_empty_g37:
-
-// Copy last lambda params
-XOR(R4, R4);
-MOV(R5, 1);
-L_clos_copy_params_begin_g35:
-CMP(R4, IMM(R3));
-JUMP_GE(L_clos_copy_params_exit_g36);
-MOV(R6, IND(R2));
-ADD(R6, R4);
-MOV(R7, IMM(FP));
-SUB(R7, IMM(4));
-SUB(R7, IMM(R5));
-MOV(IND(R6), STACK(R7));
-INCR(R4);
-INCR(R5);
-JUMP(L_clos_copy_params_begin_g35);
-L_clos_copy_params_exit_g36:
-
-// Allocate closure object
-PUSH(IMM(3));
-CALL(MALLOC);
-DROP(1);
-MOV(INDD(R0, 0), T_CLOSURE);
-MOV(INDD(R0, 1), IMM(R2)); // env
-MOV(INDD(R0, 2), LABEL(L_clos_body_g32));
-JUMP(L_clos_exit_g38);
-
-// Body 
-L_clos_body_g32:
-PUSH(FP);
-MOV(FP, SP);
-// Save length of var list in R2
-MOV(R2, FPARG(1));
-SUB(R2, IMM(0));
-// Begin var list copy loop
-MOV(R0, SOB_NIL);
-MOV(R3, FP);
-SUB(R3, 4);
-SUB(R3, FPARG(1));
-VAR_LIST_LOOP:
-CMP(R2, 0);
-JUMP_LE(VAR_LIST_LOOP_END);
-PUSH(STACK(R3));
-PUSH(IMM(R0));
-CALL(MAKE_SOB_PAIR);
-MOV(R1, IMM(R0));INCR(R3);
-DECR(R2);
-JUMP(VAR_LIST_LOOP);
-VAR_LIST_LOOP_END:
-// Save the var list
-MOV(R7, R1);
-{
-int top=IMM(FP)-4;
-int bottom=IMM(FP)-4;
-SHOW("", top);
-SHOW("", bottom);
-bottom -= STACK(bottom);
-MOV(STACK(bottom), IMM(R7));
-for (top; top < FP; top++, bottom++)
-   MOV(STACK(bottom), STACK(top));
-MOV(SP, bottom);
-}
-// (pvar v 0)
-MOV(R0, FPARG(2));
-POP(FP);
-RETURN;
-
-L_clos_exit_g38:
-POP(R1); // Restore pointer to fvar
-MOV(IND(R1), R0);
-MOV(R0, SOB_VOID);
 // applic
-// (const 1)
-MOV(R0, CONST_TABLE);
-ADD(R0, 8);
-PUSH(IMM(R0));
-PUSH(IMM(1)); // Num of params
-// (fvar f)
+PUSH(IMM(0)); // Num of params
+// (fvar list)
 MOV(R0, INDD(GLOBAL_TABLE,23));
 CMP(INDD(R0, 0), IMM(T_CLOSURE));
 JUMP_NE(L_err_cannot_apply_non_clos);
