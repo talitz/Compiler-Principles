@@ -1288,24 +1288,28 @@
                                   (3 car ,make-car)
                                   (4 cdr ,make-cdr)
                                   (5 cons ,make-cons)
-                                  (6 - ,make-minus)
-                                  (7 + ,make-plus)
-                                  (8 integer? ,make-integer?)
-                                  (9 boolean? ,make-boolean?)
-                                  (10 char? ,make-char?)
-                                  (11 procedure? ,make-procedure?)
-                                  (12 pair? ,make-pair?)
-                                  (13 symbol? ,make-symbol?)
-                                  (14 string? ,make-string?)
-                                  (15 list? ,make-list?)
-                                  (16 vector? ,make-vector?)
-                                  (17 null? ,make-null?)
-                                  (18 integer->char ,make-integer->char)
-                                  (19 char->integer ,make-char->integer)
-                                  (20 = ,make-num-eq)
-                                  (21 > ,make-gt)
-                                  (22 map ,make-map)
-                                  (23 list ,make-clist)))))
+                                  (6 cadr ,make-cadr)
+                                  (7 - ,make-minus)
+                                  (8 + ,make-plus)
+                                  (9 integer? ,make-integer?)
+                                  (10 boolean? ,make-boolean?)
+                                  (11 char? ,make-char?)
+                                  (12 procedure? ,make-procedure?)
+                                  (13 pair? ,make-pair?)
+                                  (14 symbol? ,make-symbol?)
+                                  (15 string? ,make-string?)
+                                  (16 list? ,make-list?)
+                                  (17 vector? ,make-vector?)
+                                  (18 null? ,make-null?)
+                                  (19 integer->char ,make-integer->char)
+                                  (20 char->integer ,make-char->integer)
+                                  (21 = ,make-num-eq)
+                                  (22 > ,make-gt)
+                                  (23 < ,make-lt)
+                                  (24 map ,make-map)
+                                  (25 list ,make-clist)
+                                  (26 append-binary ,make-append-binary)
+                                  (27 append ,make-append)))))
              (make-global-table-helper parsed-expr-list global-table)
              (unbox global-table))))
 
@@ -1618,6 +1622,72 @@
             "JUMP(GT_EXIT);" nl
             "GT_EXIT:" nl)))
          (make-primitive-from-code "L_GT" "E_GT" #f code const-table global-table))))
+
+(define make-cadr
+    (lambda(const-table global-table)
+       (make-primitive-from-scheme "L_CADR" "E_CADR" '(lambda(l) (car (cdr l))) const-table global-table)))
+
+(define make-lt
+    (lambda(const-table global-table)
+       (let ((code
+          '(lambda v
+             (if (or (null? v) (null? (cdr v)))
+               #t
+               (let ((first (car v))
+                     (second (cadr v)))
+                  (and (not (> first second)) (not (= first second))))))))
+       (make-primitive-from-scheme "L_LT" "E_LT" code const-table global-table))))
+
+(define make-append-binary
+    (lambda(const-table global-table)
+        (let ((code
+           '(lambda(l m)
+              (if (null? l)
+                m
+                (cons (car l) (append-binary (cdr l) m))))))
+           (make-primitive-from-scheme "L_APPEND_BINARY" "E_PRIVATE" code const-table global-table))))
+
+;(define make-append
+;    (lambda(const-table global-table)
+;        (let ((code
+;           '(lambda v
+;              (if (or (null? v) (null? (cdr v)))
+;                 v
+;                 (let* ((rest (cdr (cdr v)))
+;                        (first (append-binary (car v) (cadr v))))
+;                     (apply append first rest))))))
+;           (make-primitive-from-scheme "L_APPEND" "E_APPEND" code const-table global-table))))
+
+(define make-length
+   (lambda(const-table global-table)
+       (let ((code '(lambda(lst)
+           (letrec ((helper (lambda(lst counter)
+              (if (null? lst)
+                 counter
+                 (helper (cdr lst) (+ counter 1))))))
+               (helper lst 0)))))
+           (make-primitive-from-scheme "L_LENGTH" "E_LENGTH" code const-table global-table))))
+
+(define make-apply
+     (lambda(const-table global-table)
+        (let ((code (string-append
+            "// Save num of params in R6" nl
+            "MOV(R0, FPARG(4));" nl
+            "PUSH(IMM(R0));"
+            "CALL(L_LENGTH);" nl
+            "DROP(1);" nl
+            "MOV(R6, IMM(R0));" nl
+            ; TODO!
+            "PUSH(IMM(" (number->string (length args)) ")); // Num of params" nl
+            (code-gen proc const-table global-table major)
+              "CMP(INDD(R0, 0), IMM(T_CLOSURE));" nl
+              "JUMP_NE(L_err_cannot_apply_non_clos);" nl
+              "PUSH(INDD(R0, 1));" nl
+              "CALLA(INDD(R0, 2));" nl
+              "DROP(1); // env" nl
+              "POP(R1); // num of args" nl
+              "DROP(IMM(R1));" nl
+
 
 (define make-char->integer
     (lambda(const-table global-table)
@@ -2047,7 +2117,7 @@
             "MOV(SP, IMM(FP));" nl
             "// Fix the number of params" nl
             "SUB(R1, IMM(4));" nl
-            "MOV(STACK(R1), IMM(R6));" nl
+            "MOV(STACK(R1), IMM(" (number->string (+ num-params 1)) "));" nl
             "// Write the var list" nl
             "SUB(R1, IMM(" (number->string (+ num-params 1)) "));" nl
             "MOV(STACK(R1), IMM(R0)); // Put the var list" nl

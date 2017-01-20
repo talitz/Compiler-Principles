@@ -43,10 +43,14 @@
 #define E_LIST      400183
 #define E_NUM_EQ    152305
 #define E_GT        777096
+#define E_LT        155936
+#define E_CADR      721327
+#define E_PRIVATE   775216
+#define E_APPEND    722858
 
 /*
  *
  *
- * 155936 721327 775216 722858 864017
+ *    864017
  * 508854 414227 572874 294755 989204 646495 725032 234097
  */
