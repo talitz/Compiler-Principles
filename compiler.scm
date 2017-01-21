@@ -1309,7 +1309,8 @@
                                   (24 map ,make-map)
                                   (25 list ,make-clist)
                                   (26 append-binary ,make-append-binary)
-                                  (27 append ,make-append)))))
+                                  (27 length ,make-length)
+                                  (28 reverse ,make-reverse)))))
              (make-global-table-helper parsed-expr-list global-table)
              (unbox global-table))))
 
@@ -1661,32 +1662,33 @@
 (define make-length
    (lambda(const-table global-table)
        (let ((code '(lambda(lst)
-           (letrec ((helper (lambda(lst counter)
-              (if (null? lst)
+           (letrec ((helper (lambda(ls counter)
+              (if (null? ls)
                  counter
-                 (helper (cdr lst) (+ counter 1))))))
+                 (helper (cdr ls) (+ counter 1))))))
                (helper lst 0)))))
            (make-primitive-from-scheme "L_LENGTH" "E_LENGTH" code const-table global-table))))
+
+(define make-reverse
+   (lambda(const-table global-table)
+       (let ((code '(lambda(lst)
+          (letrec ((helper (lambda (ls acc)
+            (if (null? ls)
+               acc
+              (helper (cdr ls) (cons (car ls) acc))))))
+          (helper lst '())))))
+         (make-primitive-from-scheme "L_REVERSE" "E_PRIVATE" code const-table global-table))))
+
 
 (define make-apply
      (lambda(const-table global-table)
         (let ((code (string-append
             "// Save num of params in R6" nl
-            "MOV(R0, FPARG(4));" nl
-            "PUSH(IMM(R0));"
-            "CALL(L_LENGTH);" nl
-            "DROP(1);" nl
+            (code-gen '(applic (fvar length) (pvar params 1)) const-table global-table major)
             "MOV(R6, IMM(R0));" nl
-            ; TODO!
-            "PUSH(IMM(" (number->string (length args)) ")); // Num of params" nl
-            (code-gen proc const-table global-table major)
-              "CMP(INDD(R0, 0), IMM(T_CLOSURE));" nl
-              "JUMP_NE(L_err_cannot_apply_non_clos);" nl
-              "PUSH(INDD(R0, 1));" nl
-              "CALLA(INDD(R0, 2));" nl
-              "DROP(1); // env" nl
-              "POP(R1); // num of args" nl
-              "DROP(IMM(R1));" nl
+            "// Save the reversed var list in R7" nl
+            (code-gen '(applic (fvar reverse) (pvar params 1)) const-table global-table major)
+            "MOV(R7, IMM(R0));" nl
 
 
 (define make-char->integer
@@ -1892,6 +1894,9 @@
               ((eq? (car parsed-expr) 'pvar) (code-gen-pvar parsed-expr const-table global-table major))
               ((eq? (car parsed-expr) 'def) (code-gen-define parsed-expr const-table global-table major))
               ((eq? (car parsed-expr) 'set) (code-gen-set parsed-expr const-table global-table major))
+              ((eq? (car parsed-expr) 'box) (code-gen-box parsed-expr const-table global-table major))
+              ((eq? (car parsed-expr) 'box-get) (code-gen-box-get parsed-expr const-table global-table major))
+              ((eq? (car parsed-expr) 'box-set) (code-gen-box-set parsed-expr const-table global-table major))
               (else "JUMP(L_err_not_in_code_gen)\n"))))
 
 (define code-gen-const
@@ -2162,7 +2167,9 @@
 (define code-gen-tc-applic
     (lambda(expr const-table global-table major)
         (let ((proc (cadr expr))
-              (args (caddr expr)))
+              (args (caddr expr))
+              (fix-stack-loop (label-gen "L_fix_stack_loop"))
+              (fix-stack-loop-end (label-gen "L_fix_stack_loop_end")))
             (string-append
               "// tc-applic" nl
               (fold-right (lambda(arg code)
@@ -2181,16 +2188,20 @@
               "MOV(R1, FP);" nl
               "DECR(R1);" nl
               "MOV(R1, STACK(R1));" nl
-              "{" nl
-              "int bottom = IMM(FP), distance=0, i=0, j=0;" nl
-              "bottom -= 4;" nl
-              "bottom -= STACK(bottom);" nl
-              "distance = FP - bottom;" nl
-              "for (i=FP, j=bottom; i<SP; i++, j++) {" nl
-                "STACK(j) = STACK(i);" nl
-              "}" nl
-              "SP = j;" nl
-              "}" nl
+              "// Fix the stack" nl
+              "MOV(R2, IMM(FP));" nl
+              "SUB(R2, 4);" nl
+              "SUB(R2, STACK(R2)); // R2 = bottom" nl
+              "MOV(R3, IMM(FP));" nl
+              fix-stack-loop ":" nl
+              "CMP(R3, IMM(SP));" nl
+              "JUMP_GE(" fix-stack-loop-end ");" nl
+              "MOV(STACK(R2), STACK(R3));" nl
+              "INCR(R2);" nl
+              "INCR(R3);" nl
+              "JUMP(" fix-stack-loop ");" nl
+              fix-stack-loop-end ":" nl
+              "MOV(SP, IMM(R2));" nl
               "MOV(FP, R1);" nl
               "JUMPA(INDD(R0, 2));" nl
               ))))
@@ -2243,10 +2254,45 @@
 
 (define code-gen-set
     (lambda(expr const-table global-table major)
-       (let* ((var (car expr))
-              (var-addr (member-global-table (cadr var) global-table))
-              (val (cadr expr)))
+       (let* ((var (cadr expr))
+              (val (caddr expr)))
         (string-append
+           "// " (format "~s" expr) nl
+           (code-gen var const-table global-table major)
+           "PUSH(IMM(R0)); // Save the var before calculating val" nl
            (code-gen val const-table global-table major)
-           "MOV(INDD(GLOBAL_TABLE, " (number->string var-addr) "), IMM(R0));" nl
+           "POP(R1);" nl
+           "MOV(IND(R1), R0);" nl
            ))))
+
+(define code-gen-box
+    (lambda(expr const-table global-table major)
+        (let* ((var (cadr expr)))
+           (string-append
+             "// " (format "~s" expr) nl
+             (code-gen var const-table global-table major)
+             "PUSH(IMM(R0));" nl
+             "CALL(MAKE_SOB_BOX);" nl
+             ))))
+
+(define code-gen-box-set
+    (lambda(expr const-table global-table major)
+        (let* ((var (cadr expr))
+               (val (caddr expr)))
+            (string-append
+               "// box-set" nl
+               (code-gen var const-table global-table major)
+               "PUSH(IMM(R0)); // Save the box pointer" nl
+               (code-gen val const-table global-table major)
+               "POP(R1);" nl
+               "MOV(INDD(R1, 1), IMM(R0));" nl
+               ))))
+
+(define code-gen-box-get
+    (lambda(expr const-table global-table major)
+        (let* ((var (cadr expr)))
+           (string-append
+              "// " (format "~s" expr) nl
+              (code-gen var const-table global-table major)
+              "MOV(R0, INDD(R0,1));" nl
+              ))))

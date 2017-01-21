@@ -16,6 +16,7 @@
 #define T_CLOSURE 	276405
 #define T_UNDEFINED 451794
 #define T_FRACTION  922870
+#define T_BOX       864017
 #define E_EMPTY     544512
 #define E_EQ        183403
 #define E_ZERO      183403
@@ -47,10 +48,11 @@
 #define E_CADR      721327
 #define E_PRIVATE   775216
 #define E_APPEND    722858
+#define E_LENGTH    508854
 
 /*
  *
  *
- *    864017
- * 508854 414227 572874 294755 989204 646495 725032 234097
+ *
+ *  414227 572874 294755 989204 646495 725032 234097
  */
