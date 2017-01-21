@@ -1308,9 +1308,9 @@
                                   (23 < ,make-lt)
                                   (24 map ,make-map)
                                   (25 list ,make-clist)
-                                  (26 append-binary ,make-append-binary)
-                                  (27 length ,make-length)
-                                  (28 reverse ,make-reverse)))))
+                                  (26 length ,make-length)
+                                  (27 reverse ,make-reverse)
+                                  (28 apply ,make-apply)))))
              (make-global-table-helper parsed-expr-list global-table)
              (unbox global-table))))
 
@@ -1661,6 +1661,7 @@
 
 (define make-length
    (lambda(const-table global-table)
+      (display 'a)
        (let ((code '(lambda(lst)
            (letrec ((helper (lambda(ls counter)
               (if (null? ls)
@@ -1675,20 +1676,38 @@
           (letrec ((helper (lambda (ls acc)
             (if (null? ls)
                acc
-              (helper (cdr ls) (cons (car ls) acc))))))
+               (helper (cdr ls) (cons (car ls) acc))))))
           (helper lst '())))))
          (make-primitive-from-scheme "L_REVERSE" "E_PRIVATE" code const-table global-table))))
-
 
 (define make-apply
      (lambda(const-table global-table)
         (let ((code (string-append
-            "// Save num of params in R6" nl
-            (code-gen '(applic (fvar length) (pvar params 1)) const-table global-table major)
-            "MOV(R6, IMM(R0));" nl
-            "// Save the reversed var list in R7" nl
-            (code-gen '(applic (fvar reverse) (pvar params 1)) const-table global-table major)
-            "MOV(R7, IMM(R0));" nl
+            "// Save num of params in the stack" nl
+            (code-gen '(applic (fvar length) ((pvar params 1))) const-table global-table 0)
+            "PUSH(IMM(R0));" nl
+            "// Calculate the reversed var list" nl
+            (code-gen '(applic (fvar reverse) ((pvar params 1))) const-table global-table 0)
+            "// Push the vars from the var list (in reversed order)" nl
+            "POP(R1);" nl
+            "APPLY_PUSH_VARS_LOOP:" nl
+            "CMP(R0, SOB_NIL);" nl
+            "JUMP_EQ(APPLY_PUSH_VARS_LOOP_END);" nl
+            "PUSH(INDD(R0, 1));" nl
+            "MOV(R0, INDD(R0, 2));" nl
+            "JUMP(APPLY_PUSH_VARS_LOOP);" nl
+            "APPLY_PUSH_VARS_LOOP_END:" nl
+            "// Push the num of params" nl
+            "PUSH(IMM(R1));" nl
+            "// Push the closure's env" nl
+            "MOV(R0, FPARG(2));" nl
+            "PUSH(INDD(R0, 1));" nl
+            "CALLA(INDD(R0, 2));" nl
+            "DROP(1); // env" nl
+            "POP(R1); // num of args" nl
+            "DROP(IMM(R1));" nl
+            )))
+          (make-primitive-from-code "L_apply" "E_APPLY" 2 code const-table global-table))))
 
 
 (define make-char->integer

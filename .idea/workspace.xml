@@ -2,11 +2,9 @@
 <project version="4">
   <component name="ChangeListManager">
     <list default="true" id="055aa2a0-97b1-45c6-b577-9986729c04db" name="Default" comment="">
-      <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/arch/lib/scheme/make_sob_box.asm" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/arch/test" afterPath="$PROJECT_DIR$/arch/test" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/arch/lib/scheme/types.inc" afterPath="$PROJECT_DIR$/arch/lib/scheme/types.inc" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/arch/scheme.lib" afterPath="$PROJECT_DIR$/arch/scheme.lib" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/arch/test.c" afterPath="$PROJECT_DIR$/arch/test.c" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/arch/test.scm" afterPath="$PROJECT_DIR$/arch/test.scm" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/compiler.scm" afterPath="$PROJECT_DIR$/compiler.scm" />
@@ -40,8 +38,8 @@
       <file leaf-file-name="compiler.scm" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/compiler.scm">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="322">
-              <caret line="1690" column="34" lean-forward="false" selection-start-line="1690" selection-start-column="34" selection-end-line="1690" selection-end-column="34" />
+            <state relative-caret-position="508">
+              <caret line="1681" column="0" lean-forward="true" selection-start-line="1681" selection-start-column="0" selection-end-line="1681" selection-end-column="0" />
               <folding />
             </state>
           </provider>
@@ -81,7 +79,7 @@
         <entry file="file://$PROJECT_DIR$/arch/test.scm">
           <provider selected="true" editor-type-id="text-editor">
             <state relative-caret-position="0">
-              <caret line="0" column="22" lean-forward="false" selection-start-line="0" selection-start-column="22" selection-end-line="0" selection-end-column="22" />
+              <caret line="0" column="1" lean-forward="false" selection-start-line="0" selection-start-column="1" selection-end-line="0" selection-end-column="1" />
               <folding />
             </state>
           </provider>
@@ -90,8 +88,8 @@
       <file leaf-file-name="types.inc" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/arch/lib/scheme/types.inc">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="833">
-              <caret line="49" column="26" lean-forward="true" selection-start-line="49" selection-start-column="26" selection-end-line="49" selection-end-column="26" />
+            <state relative-caret-position="659">
+              <caret line="51" column="26" lean-forward="false" selection-start-line="51" selection-start-column="26" selection-end-line="51" selection-end-column="26" />
               <folding />
             </state>
           </provider>
@@ -100,8 +98,8 @@
       <file leaf-file-name="test.c" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/arch/test.c">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="2141">
-              <caret line="2441" column="5" lean-forward="false" selection-start-line="2441" selection-start-column="5" selection-end-line="2441" selection-end-column="5" />
+            <state relative-caret-position="100">
+              <caret line="1529" column="5" lean-forward="false" selection-start-line="1529" selection-start-column="5" selection-end-line="1529" selection-end-column="5" />
               <folding />
             </state>
           </provider>
@@ -118,36 +116,36 @@
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
-      <find>co</find>
-      <find>code-gen-apply</find>
-      <find>make-append</find>
-      <find>make-const-table</find>
-      <find>make-global-table</find>
-      <find>make-global-table-helper</find>
-      <find>cadr</find>
-      <find>create-prologue</find>
-      <find>code-gen-tc-applic</find>
-      <find>code-gen</find>
-      <find>make-revers</find>
-      <find>make-primitive-from-scheme</find>
-      <find>l_length</find>
-      <find>create-lambda-body</find>
-      <find>make-primitive-from-code</find>
-      <find>compile-scheme-file</find>
-      <find>code-gen-set</find>
-      <find>display final-code</find>
-      <find>display</find>
-      <find>format</find>
-      <find>(else</find>
-      <find>define code-gen</find>
-      <find>write_sob_nil</find>
-      <find>make-length</find>
-      <find>E_LENT</find>
       <find>invalid</find>
       <find>4339059</find>
       <find>reverse</find>
+      <find>code-gen-applic</find>
+      <find>E_APPLY</find>
+      <find>format</find>
+      <find>L_APPLY</find>
+      <find>make-list</find>
+      <find>make-global-table-helper</find>
+      <find>apply</find>
+      <find>member-global-table</find>
+      <find>member-const-table</find>
+      <find>global-table-helper</find>
+      <find>make-global-table</find>
+      <find>define code-gen</find>
+      <find>txt-parts</find>
+      <find>create-prologue</find>
+      <find>make-global-table-mov-instructions</find>
+      <find>make-primitive-from-scheme</find>
+      <find>make-primitive-from-scheme</find>
+      <find>define make-primitive-from-scheme</find>
+      <find>apply ,ak</find>
+      <find>display</find>
+      <find>display</find>
       <find>make-reverse</find>
+      <find>length</find>
+      <find>display 'tal</find>
       <find>make-apply</find>
+      <find>make-length</find>
+      <find>make-</find>
     </findStrings>
   </component>
   <component name="Git.Settings">
@@ -182,8 +180,8 @@
         <option value="$PROJECT_DIR$/arch/debug_macros.h" />
         <option value="$PROJECT_DIR$/arch/lib/scheme/make_sob_box.asm" />
         <option value="$PROJECT_DIR$/arch/scheme.lib" />
-        <option value="$PROJECT_DIR$/arch/lib/scheme/types.inc" />
         <option value="$PROJECT_DIR$/arch/test.c" />
+        <option value="$PROJECT_DIR$/arch/lib/scheme/types.inc" />
         <option value="$PROJECT_DIR$/arch/test.scm" />
         <option value="$PROJECT_DIR$/compiler.scm" />
       </list>
@@ -275,28 +273,6 @@
             </PATH_ELEMENT>
             <PATH_ELEMENT>
               <option name="myItemId" value="lib" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-          </PATH>
-          <PATH>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="Compiler-Principles" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="Compiler-Principles" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="arch" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="lib" />
-              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
-            </PATH_ELEMENT>
-            <PATH_ELEMENT>
-              <option name="myItemId" value="scheme" />
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
@@ -555,7 +531,7 @@
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32980973" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.43529412" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.43529412" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32913166" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
@@ -921,16 +897,16 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/arch/lib/scheme/types.inc">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="833">
-          <caret line="49" column="26" lean-forward="true" selection-start-line="49" selection-start-column="26" selection-end-line="49" selection-end-column="26" />
+        <state relative-caret-position="659">
+          <caret line="51" column="26" lean-forward="false" selection-start-line="51" selection-start-column="26" selection-end-line="51" selection-end-column="26" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/arch/test.c">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2141">
-          <caret line="2441" column="5" lean-forward="false" selection-start-line="2441" selection-start-column="5" selection-end-line="2441" selection-end-column="5" />
+        <state relative-caret-position="100">
+          <caret line="1529" column="5" lean-forward="false" selection-start-line="1529" selection-start-column="5" selection-end-line="1529" selection-end-column="5" />
           <folding />
         </state>
       </provider>
@@ -938,15 +914,15 @@
     <entry file="file://$PROJECT_DIR$/arch/test.scm">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
-          <caret line="0" column="22" lean-forward="false" selection-start-line="0" selection-start-column="22" selection-end-line="0" selection-end-column="22" />
+          <caret line="0" column="1" lean-forward="false" selection-start-line="0" selection-start-column="1" selection-end-line="0" selection-end-column="1" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/compiler.scm">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="322">
-          <caret line="1690" column="34" lean-forward="false" selection-start-line="1690" selection-start-column="34" selection-end-line="1690" selection-end-column="34" />
+        <state relative-caret-position="508">
+          <caret line="1681" column="0" lean-forward="true" selection-start-line="1681" selection-start-column="0" selection-end-line="1681" selection-end-column="0" />
           <folding />
         </state>
       </provider>
