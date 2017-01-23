@@ -40,6 +40,14 @@
   : ((x) == E_LIST)      ? snprintf(res, 16, "%s", "E_LIST")                       \
   : ((x) == E_NUM_EQ)      ? snprintf(res, 16, "%s", "E_NUM_EQ")                       \
   : ((x) == E_GT)      ? snprintf(res, 16, "%s", "E_GT")              \
+  : ((x) == E_LT)      ? snprintf(res, 16, "%s", "E_LT")              \
+  : ((x) == E_CADR)      ? snprintf(res, 16, "%s", "E_CADR")              \
+  : ((x) == E_PRIVATE)      ? snprintf(res, 16, "%s", "E_PRIVATE")              \
+  : ((x) == E_APPEND)      ? snprintf(res, 16, "%s", "E_APPEND")              \
+  : ((x) == E_LENGTH)      ? snprintf(res, 16, "%s", "E_LENGTH")              \
+  : ((x) == E_APPLY)      ? snprintf(res, 16, "%s", "E_APPLY")              \
+  : ((x) == E_BOX)      ? snprintf(res, 16, "%s", "E_BOX")              \
+  : ((x) == T_BOX)      ? snprintf(res, 16, "%s", "T_BOX")              \
   : snprintf(res, 16, "%ld", (x)))
 
 #if DO_SHOW == 0

@@ -1181,7 +1181,9 @@
                                    (1 () ("T_NIL"))
                                    (2 #f ("T_BOOL" "0"))
                                    (4 #t ("T_BOOL" "1"))
-                                   (6 0 ("T_INTEGER" "0"))))))
+                                   (6 0 ("T_INTEGER" "0"))
+                                   (8 1 ("T_INTEGER" "1"))
+                                   (10 2 ("T_INTEGER" "2"))))))
              (make-const-table-helper parsed-expr-list const-table)
              (unbox const-table))))
 
@@ -1303,14 +1305,24 @@
                                   (18 null? ,make-null?)
                                   (19 integer->char ,make-integer->char)
                                   (20 char->integer ,make-char->integer)
-                                  (21 = ,make-num-eq)
-                                  (22 > ,make-gt)
-                                  (23 < ,make-lt)
-                                  (24 map ,make-map)
-                                  (25 list ,make-clist)
-                                  (26 length ,make-length)
-                                  (27 reverse ,make-reverse)
-                                  (28 apply ,make-apply)))))
+                                  (21 box ,make-box)
+                                  (22 unbox ,make-unbox)
+                                  (23 = ,make-num-eq)
+                                  (24 > ,make-gt)
+                                  (25 < ,make-lt)
+                                  (26 map ,make-map)
+                                  (27 list ,make-clist)
+                                  (28 length ,make-length)
+                                  (29 reverse ,make-reverse)
+                                  (30 apply ,make-apply)
+                                  (31 append-binary ,make-append-binary)
+                                  (32 append ,make-append)
+                                  (33 make-string ,make-make-string)
+                                  (34 string-ref ,make-string-ref)
+                                  (35 string-set! ,make-string-set!)
+                                  (36 vector ,make-cvector)
+                                  (37 vector-ref ,make-vector-ref)
+                                  (38 vector-set! ,make-vector-set!)))))
              (make-global-table-helper parsed-expr-list global-table)
              (unbox global-table))))
 
@@ -1648,20 +1660,19 @@
                 (cons (car l) (append-binary (cdr l) m))))))
            (make-primitive-from-scheme "L_APPEND_BINARY" "E_PRIVATE" code const-table global-table))))
 
-;(define make-append
-;    (lambda(const-table global-table)
-;        (let ((code
-;           '(lambda v
-;              (if (or (null? v) (null? (cdr v)))
-;                 v
-;                 (let* ((rest (cdr (cdr v)))
-;                        (first (append-binary (car v) (cadr v))))
-;                     (apply append first rest))))))
-;           (make-primitive-from-scheme "L_APPEND" "E_APPEND" code const-table global-table))))
+(define make-append
+    (lambda(const-table global-table)
+        (let ((code
+           '(lambda v
+              (cond ((or (null? v) (null? (cdr v))) v)
+                    ((= (length v) 2) (append-binary (car v) (cadr v)))
+                    (else (let ((rest (cdr (cdr v)))
+                                (first (append-binary (car v) (cadr v))))
+                       (apply append (cons first rest))))))))
+           (make-primitive-from-scheme "L_APPEND" "E_APPEND" code const-table global-table))))
 
 (define make-length
    (lambda(const-table global-table)
-      (display 'a)
        (let ((code '(lambda(lst)
            (letrec ((helper (lambda(ls counter)
               (if (null? ls)
@@ -1669,6 +1680,152 @@
                  (helper (cdr ls) (+ counter 1))))))
                (helper lst 0)))))
            (make-primitive-from-scheme "L_LENGTH" "E_LENGTH" code const-table global-table))))
+
+(define make-make-string
+   (lambda(const-table global-table)
+       (let ((code (string-append
+           "MOV(R0, FPARG(1));" nl
+           "CMP(R0, 3);" nl
+           "JUMP_GE(L_err_lambda_args_count);" nl
+           "// Save the char in R1" nl
+           "CMP(R0, 2);" nl
+           "JUMP_EQ(L_make_string_char_received);" nl
+           "MOV(R1, IMM(0));" nl
+           "JUMP(L_make_string_continue);" nl
+           "L_make_string_char_received:" nl
+           "MOV(R0, FPARG(3));" nl
+           "MOV(R1, INDD(R0, 1));" nl
+           "L_make_string_continue:" nl
+           "MOV(R2, FPARG(2));" nl
+           "MOV(R2, INDD(R2, 1));" nl
+           "MOV(R6, R2);" nl
+           "L_make_string_loop:" nl
+           "CMP(R2, 0);" nl
+           "JUMP_LE(L_make_string_loop_exit);" nl
+           "PUSH(IMM(R1));" nl
+           "DECR(R2);" nl
+           "JUMP(L_make_string_loop);" nl
+           "L_make_string_loop_exit:" nl
+           "PUSH(IMM(R6));" nl
+           "CALL(MAKE_SOB_STRING);" nl
+           "DROP(IMM(R6));" nl
+           "DROP(1);" nl)))
+         (make-primitive-from-code "L_MAKE_STRING" "E_PRIVATE" #f code const-table global-table))))
+
+(define make-string-length
+   (lambda(const-table global-table)
+       (let ((code (string-append
+          "MOV(R0, FPARG(2));" nl
+          "MOV(R0, INDD(R0, 2));" nl)))
+         (make-primitive-from-code "L_STRING_LENGTH" "E_PRIVATE" 1 code const-table global-table))))
+
+(define make-string-ref
+   (lambda(const-table global-table)
+       (let ((code (string-append
+          "MOV(R0, FPARG(2));" nl
+          "CMP(INDD(R0, 0), T_STRING);" nl
+          "JUMP_NE(L_err_invalid_param);" nl
+          "MOV(R1, FPARG(3));" nl
+          "CMP(INDD(R1, 0), T_INTEGER);" nl
+          "JUMP_NE(L_err_invalid_param);" nl
+          "ADD(R0, 2);" nl
+          "ADD(R0, INDD(R1, 1));" nl
+          "PUSH(IND(R0));"
+          "CALL(MAKE_SOB_CHAR);" nl
+          "DROP(1);" nl)))
+         (make-primitive-from-code "L_STRING_REF" "E_PRIVATE" 2 code const-table global-table))))
+
+(define make-string-set!
+   (lambda(const-table global-table)
+       (let ((code (string-append
+          "MOV(R0, FPARG(2));" nl
+          "CMP(INDD(R0, 0), T_STRING);" nl
+          "JUMP_NE(L_err_invalid_param);" nl
+          "MOV(R1, FPARG(3));" nl
+          "CMP(INDD(R1, 0), T_INTEGER);" nl
+          "JUMP_NE(L_err_invalid_param);" nl
+          "MOV(R2, FPARG(4));" nl
+          "CMP(INDD(R2, 0), T_CHAR);" nl
+          "JUMP_NE(L_err_invalid_param);" nl
+          "ADD(R0, 2);" nl
+          "ADD(R0, INDD(R1, 1));" nl
+          "MOV(IND(R0), INDD(R2, 1));" nl
+          "MOV(R0, IMM(SOB_VOID));" nl)))
+         (make-primitive-from-code "L_STRING_SET" "E_PRIVATE" 3 code const-table global-table))))
+
+(define make-cvector
+   (lambda(const-table global-table)
+       (let ((code (string-append
+           "MOV(R0, FPARG(1));" nl
+           "MOV(R1, FP);" nl
+           "SUB(R1, 5);" nl
+           "L_vector_push_loop:" nl
+           "CMP(R0, 0);" nl
+           "JUMP_LE(L_vector_push_loop_end);" nl
+           "PUSH(STACK(R1));" nl
+           "DECR(R1);" nl
+           "DECR(R0);" nl
+           "JUMP(L_vector_push_loop);" nl
+           "L_vector_push_loop_end:" nl
+           "PUSH(FPARG(1));" nl
+           "CALL(MAKE_SOB_VECTOR);" nl
+           "DROP(1);" nl
+           "DROP(FPARG(1));" nl
+           )))
+         (make-primitive-from-code "L_VECTOR" "E_PRIVATE" #f code const-table global-table))))
+
+(define make-vector-length
+   (lambda(const-table global-table)
+       (let ((code (string-append
+          "MOV(R0, FPARG(2));" nl
+          "MOV(R0, INDD(R0, 2));" nl)))
+         (make-primitive-from-code "L_VECTOR_LENGTH" "E_PRIVATE" 1 code const-table global-table))))
+
+(define make-vector-ref
+   (lambda(const-table global-table)
+       (let ((code (string-append
+          "MOV(R0, FPARG(2));" nl
+          "CMP(INDD(R0, 0), T_VECTOR);" nl
+          "JUMP_NE(L_err_invalid_param);" nl
+          "MOV(R1, FPARG(3));" nl
+          "CMP(INDD(R1, 0), T_INTEGER);" nl
+          "JUMP_NE(L_err_invalid_param);" nl
+          "ADD(R0, 2);" nl
+          "ADD(R0, INDD(R1, 1));" nl
+          "MOV(R0, IND(R0));" nl)))
+         (make-primitive-from-code "L_VECTOR_REF" "E_PRIVATE" 2 code const-table global-table))))
+
+(define make-vector-set!
+   (lambda(const-table global-table)
+       (let ((code (string-append
+          "MOV(R0, FPARG(2));" nl
+          "CMP(INDD(R0, 0), T_VECTOR);" nl
+          "JUMP_NE(L_err_invalid_param);" nl
+          "MOV(R1, FPARG(3));" nl
+          "CMP(INDD(R1, 0), T_INTEGER);" nl
+          "JUMP_NE(L_err_invalid_param);" nl
+          "ADD(R0, 2);" nl
+          "ADD(R0, INDD(R1, 1));" nl
+          "MOV(IND(R0), FPARG(4));" nl
+          "MOV(R0, IMM(SOB_VOID));" nl)))
+         (make-primitive-from-code "L_VECTOR_SET" "E_PRIVATE" 3 code const-table global-table))))
+
+(define make-box
+   (lambda(const-table global-table)
+      (let ((code
+         (string-append
+             "PUSH(FPARG(2));" nl
+             "CALL(MAKE_SOB_BOX);" nl
+             "DROP(1);" nl)))
+          (make-primitive-from-code "L_BOX" "E_BOX" 1 code const-table global-table))))
+
+(define make-unbox
+   (lambda(const-table global-table)
+      (let ((code
+         (string-append
+             "MOV(R0, FPARG(2));" nl
+             "MOV(R0, INDD(R0,1));" nl)))
+          (make-primitive-from-code "L_UNBOX" "E_UNBOX" 1 code const-table global-table))))
 
 (define make-reverse
    (lambda(const-table global-table)
@@ -1698,7 +1855,7 @@
             "JUMP(APPLY_PUSH_VARS_LOOP);" nl
             "APPLY_PUSH_VARS_LOOP_END:" nl
             "// Push the num of params" nl
-            "PUSH(IMM(R1));" nl
+            "PUSH(INDD(R1, 1));" nl
             "// Push the closure's env" nl
             "MOV(R0, FPARG(2));" nl
             "PUSH(INDD(R0, 1));" nl
@@ -2292,7 +2449,7 @@
              (code-gen var const-table global-table major)
              "PUSH(IMM(R0));" nl
              "CALL(MAKE_SOB_BOX);" nl
-             ))))
+             "DROP(1);" nl))))
 
 (define code-gen-box-set
     (lambda(expr const-table global-table major)

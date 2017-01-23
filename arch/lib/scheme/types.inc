@@ -50,10 +50,12 @@
 #define E_APPEND    722858
 #define E_LENGTH    508854
 #define E_APPLY     414227
+#define E_BOX       572874
+#define E_UNBOX     294755
 
 /*
  *
  *
  *
- *  572874 294755 989204 646495 725032 234097
+ *   989204 646495 725032 234097
  */
