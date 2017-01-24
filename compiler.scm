@@ -1317,13 +1317,19 @@
                                   (31 append-binary ,make-append-binary)
                                   (32 append ,make-append)
                                   (33 make-string ,make-make-string)
-                                  (34 string-ref ,make-string-ref)
-                                  (35 string-set! ,make-string-set!)
-                                  (36 vector ,make-cvector)
-                                  (37 vector-ref ,make-vector-ref)
-                                  (38 vector-set! ,make-vector-set!)
-                                  (39 * ,make-mult)
-                                  (40 / ,make-div)))))
+                                  (34 string-length ,make-string-length)
+                                  (35 string-ref ,make-string-ref)
+                                  (36 string-set! ,make-string-set!)
+                                  (37 vector ,make-cvector)
+                                  (38 make-vector ,make-make-vector)
+                                  (39 vector-length ,make-vector-length)
+                                  (40 vector-ref ,make-vector-ref)
+                                  (41 vector-set! ,make-vector-set!)
+                                  (42 * ,make-mult)
+                                  (43 / ,make-div)
+                                  (44 denominator ,make-denominator)
+                                  (45 numerator ,make-numerator)
+                                  (46 remainder ,make-remainder)))))
              (make-global-table-helper parsed-expr-list global-table)
              (unbox global-table))))
 
@@ -1723,6 +1729,41 @@
             "GT_EXIT:" nl)))
          (make-primitive-from-code "L_GT" "E_GT" #f code const-table global-table))))
 
+(define make-denominator
+    (lambda(const-table global-table)
+        (let ((code (string-append
+            "MOV(R0, FPARG(2));" nl
+            "CMP(IND(R0), T_INTEGER);" nl
+            "JUMP_NE(L_err_invalid_param);" nl
+            "MOV(R0, INDD(R0, 2));" nl)))
+          (make-primitive-from-code "L_DENOMINATOR" "E_PRIVATE" 1 code const-table global-table))))
+
+(define make-remainder
+    (lambda(const-table global-table)
+        (let ((code (string-append
+            "MOV(R0, FPARG(2));" nl
+            "MOV(R1, FPARG(3));" nl
+            "CMP(IND(R0), T_INTEGER);" nl
+            "JUMP_NE(L_err_invalid_param);" nl
+            "CMP(IND(R1), T_INTEGER);" nl
+            "JUMP_NE(L_err_invalid_param);" nl
+            "MOV(R2, INDD(R0, 1));" nl
+            "REM(R2, INDD(R1, 1));" nl
+            "PUSH(R2);" nl
+            "PUSH(1);" nl
+            "CALL(MAKE_SOB_INTEGER);" nl
+            "DROP(2);" nl)))
+          (make-primitive-from-code "L_REMAINDER" "E_PRIVATE" 2 code const-table global-table))))
+
+(define make-numerator
+    (lambda(const-table global-table)
+        (let ((code (string-append
+            "MOV(R0, FPARG(2));" nl
+            "CMP(IND(R0), T_INTEGER);" nl
+            "JUMP_NE(L_err_invalid_param);" nl
+            "MOV(R0, INDD(R0, 1));" nl)))
+          (make-primitive-from-code "L_NUMERATOR" "E_PRIVATE" 1 code const-table global-table))))
+
 (define make-cadr
     (lambda(const-table global-table)
        (make-primitive-from-scheme "L_CADR" "E_CADR" '(lambda(l) (car (cdr l))) const-table global-table)))
@@ -1803,7 +1844,10 @@
    (lambda(const-table global-table)
        (let ((code (string-append
           "MOV(R0, FPARG(2));" nl
-          "MOV(R0, INDD(R0, 2));" nl)))
+          "PUSH(INDD(R0, 1));" nl
+          "PUSH(1);" nl
+          "CALL(MAKE_SOB_INTEGER);" nl
+          "DROP(2);" nl)))
          (make-primitive-from-code "L_STRING_LENGTH" "E_PRIVATE" 1 code const-table global-table))))
 
 (define make-string-ref
@@ -1861,11 +1905,44 @@
            )))
          (make-primitive-from-code "L_VECTOR" "E_PRIVATE" #f code const-table global-table))))
 
+(define make-make-vector
+   (lambda(const-table global-table)
+       (let ((code (string-append
+           "MOV(R0, FPARG(1));" nl
+           "CMP(R0, 3);" nl
+           "JUMP_GE(L_err_lambda_args_count);" nl
+           "// Save the char in R1" nl
+           "CMP(R0, 2);" nl
+           "JUMP_EQ(L_make_vector_mem_received);" nl
+           "MOV(R1," (number->string (+ 1 (member-const-table 0 const-table))) ");" nl
+           "JUMP(L_make_vector_continue);" nl
+           "L_make_vector_mem_received:" nl
+           "MOV(R1, FPARG(3));" nl
+           "L_make_vector_continue:" nl
+           "MOV(R2, FPARG(2));" nl
+           "MOV(R2, INDD(R2, 1));" nl
+           "MOV(R6, R2);" nl
+           "L_make_vector_loop:" nl
+           "CMP(R2, 0);" nl
+           "JUMP_LE(L_make_vector_loop_exit);" nl
+           "PUSH(IMM(R1));" nl
+           "DECR(R2);" nl
+           "JUMP(L_make_vector_loop);" nl
+           "L_make_vector_loop_exit:" nl
+           "PUSH(IMM(R6));" nl
+           "CALL(MAKE_SOB_VECTOR);" nl
+           "DROP(IMM(R6));" nl
+           "DROP(1);" nl)))
+         (make-primitive-from-code "L_MAKE_VECTOR" "E_PRIVATE" #f code const-table global-table))))
+
 (define make-vector-length
    (lambda(const-table global-table)
        (let ((code (string-append
           "MOV(R0, FPARG(2));" nl
-          "MOV(R0, INDD(R0, 2));" nl)))
+          "PUSH(INDD(R0, 1));" nl
+          "PUSH(1);" nl
+          "CALL(MAKE_SOB_INTEGER);" nl
+          "DROP(2);" nl)))
          (make-primitive-from-code "L_VECTOR_LENGTH" "E_PRIVATE" 1 code const-table global-table))))
 
 (define make-vector-ref
@@ -1965,8 +2042,9 @@
           "JUMP_EQ(L_err_invalid_param);" nl
           "MOV(R0, INDD(R1, 1));" nl
           "PUSH(IMM(R0));"
+          "PUSH(1);" nl
           "CALL(MAKE_SOB_INTEGER);" nl
-          "DROP(1);" nl)))
+          "DROP(2);" nl)))
          (make-primitive-from-code "L_char_to_integer" "E_CHAR_TO_INTEGER" 1 code const-table global-table))))
 
 (define make-integer->char
