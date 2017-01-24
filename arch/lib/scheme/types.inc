@@ -52,10 +52,12 @@
 #define E_APPLY     414227
 #define E_BOX       572874
 #define E_UNBOX     294755
+#define E_MULT      989204
+#define E_DIV       646495
 
 /*
  *
  *
  *
- *   989204 646495 725032 234097
+ *     725032 234097
  */

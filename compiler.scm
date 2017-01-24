@@ -1181,9 +1181,9 @@
                                    (1 () ("T_NIL"))
                                    (2 #f ("T_BOOL" "0"))
                                    (4 #t ("T_BOOL" "1"))
-                                   (6 0 ("T_INTEGER" "0"))
-                                   (8 1 ("T_INTEGER" "1"))
-                                   (10 2 ("T_INTEGER" "2"))))))
+                                   (6 0 ("T_INTEGER" "0" "1"))
+                                   (9 1 ("T_INTEGER" "1" "1"))
+                                   (12 2 ("T_INTEGER" "2" "1"))))))
              (make-const-table-helper parsed-expr-list const-table)
              (unbox const-table))))
 
@@ -1227,9 +1227,8 @@
                   (string-repr (lambda(str)
                      (map (lambda(x) (number->string (char->integer x))) (string->list str)))))
             (cond ((member-const-table val const-table) const-table)
-                  ((integer? val) (append const-table `((,new-addr ,val ("T_INTEGER" ,(number->string val))))))
-                  ((fraction? val) (append const-table `((,new-addr ,val
-                     ("T_FRACTION" ,(number->string (numerator val)) ,(number->string (denominator val)))))))
+                  ((number? val) (append const-table `((,new-addr ,val
+                    ("T_INTEGER" ,(number->string (numerator val)) ,(number->string (denominator val)))))))
                   ((char? val) (append const-table `((,new-addr ,val ("T_CHAR"
                      ,(string-append "'" (string val) "'"))))))
                   ((string? val) (append const-table `((,new-addr ,val ("T_STRING"
@@ -1322,7 +1321,9 @@
                                   (35 string-set! ,make-string-set!)
                                   (36 vector ,make-cvector)
                                   (37 vector-ref ,make-vector-ref)
-                                  (38 vector-set! ,make-vector-set!)))))
+                                  (38 vector-set! ,make-vector-set!)
+                                  (39 * ,make-mult)
+                                  (40 / ,make-div)))))
              (make-global-table-helper parsed-expr-list global-table)
              (unbox global-table))))
 
@@ -1521,23 +1522,29 @@
 (define make-plus
     (lambda(const-table global-table)
        (let ((code (string-append
-            "MOV(R1, FPARG(1)); // Num of params" nl
+            "MOV(R3, FPARG(1)); // Num of params" nl
             "MOV(R0, IMM(0));" nl
+            "MOV(R1, IMM(1));" nl
             "MOV(R2, IMM(FP));" nl
             "SUB(R2, IMM(5));" nl
             "PLUS_LOOP:" nl
-            "CMP(R1, IMM(0));" nl
+            "CMP(R3, IMM(0));" nl
             "JUMP_LE(PLUS_EXIT);" nl
-            "MOV(R3, STACK(R2));" nl
-            "ADD(R0, INDD(R3, 1));" nl
+            "MOV(R4, STACK(R2));" nl
+            "PUSH(IMM(R4));" nl
+            "PUSH(IMM(R1));" nl
+            "PUSH(IMM(R0));" nl
+            "CALL(SUM);" nl
+            "DROP(3);" nl
             "DECR(R2);" nl
-            "DECR(R1);" nl
+            "DECR(R3);" nl
             "JUMP(PLUS_LOOP);" nl
             "PLUS_EXIT:" nl
             "PUSH(IMM(R0));" nl
+            "PUSH(IMM(R1));" nl
             "CALL(MAKE_SOB_INTEGER);" nl
-            "DROP(1);" nl)))
-         (make-primitive-from-code "L_plus" "E_PLUS" #f code const-table global-table))))
+            "DROP(2);" nl)))
+         (make-primitive-from-code "L_PLUS" "E_PLUS" #f code const-table global-table))))
 
 (define make-int-to-bool
     (lambda(const-table global-table)
@@ -1553,31 +1560,103 @@
 (define make-minus
     (lambda(const-table global-table)
        (let ((code (string-append
-            "MOV(R1, FPARG(1)); // Num of params" nl
-            "CMP(R1, 0);" nl
+            "MOV(R3, FPARG(1)); // Num of params" nl
+            "CMP(R3, 0);" nl
             "JUMP_EQ(L_err_lambda_args_count);" nl
             "MOV(R0, IMM(0));" nl
+            "MOV(R1, IMM(1));" nl
+            "CMP(R3, 1);" nl
+            "JUMP_EQ(MINUS_EXIT);" nl
             "MOV(R2, IMM(FP));" nl
             "SUB(R2, IMM(5));" nl
-            "CMP(FPARG(1), IMM(1));" nl
-            "JUMP_EQ(MINUS_LOOP);" nl
-            "MOV(R0, STACK(R2));" nl
-            "MOV(R0, INDD(R0, 1));" nl
+            "MOV(R4, STACK(R2));" nl
+            "MOV(R0, INDD(R4, 1));" nl
+            "MOV(R1, INDD(R4, 2));" nl
+            "DECR(R3);" nl
             "DECR(R2);" nl
-            "DECR(R1);" nl
             "MINUS_LOOP:" nl
-            "CMP(R1, IMM(0));" nl
+            "CMP(R3, IMM(0));" nl
             "JUMP_LE(MINUS_EXIT);" nl
-            "MOV(R3, STACK(R2));" nl
-            "SUB(R0, INDD(R3, 1));" nl
+            "MOV(R4, STACK(R2));" nl
+            "PUSH(IMM(R4));" nl
+            "PUSH(IMM(R1));" nl
+            "PUSH(IMM(R0));" nl
+            "CALL(SUBSTRACT);" nl
+            "DROP(3);" nl
             "DECR(R2);" nl
-            "DECR(R1);" nl
+            "DECR(R3);" nl
             "JUMP(MINUS_LOOP);" nl
             "MINUS_EXIT:" nl
             "PUSH(IMM(R0));" nl
+            "PUSH(IMM(R1));" nl
             "CALL(MAKE_SOB_INTEGER);" nl
-            "DROP(1);" nl)))
-         (make-primitive-from-code "L_minus" "E_MINUS" #f code const-table global-table))))
+            "DROP(2);" nl)))
+         (make-primitive-from-code "L_MINUS" "E_MINUS" #f code const-table global-table))))
+
+(define make-mult
+    (lambda(const-table global-table)
+       (let ((code (string-append
+            "MOV(R3, FPARG(1)); // Num of params" nl
+            "MOV(R0, IMM(1));" nl
+            "MOV(R1, IMM(1));" nl
+            "MOV(R2, IMM(FP));" nl
+            "SUB(R2, IMM(5));" nl
+            "MULT_LOOP:" nl
+            "CMP(R3, IMM(0));" nl
+            "JUMP_LE(MULT_EXIT);" nl
+            "MOV(R4, STACK(R2));" nl
+            "PUSH(IMM(R4));" nl
+            "PUSH(IMM(R1));" nl
+            "PUSH(IMM(R0));" nl
+            "CALL(MULT);" nl
+            "DROP(3);" nl
+            "DECR(R2);" nl
+            "DECR(R3);" nl
+            "JUMP(MULT_LOOP);" nl
+            "MULT_EXIT:" nl
+            "PUSH(IMM(R0));" nl
+            "PUSH(IMM(R1));" nl
+            "CALL(MAKE_SOB_INTEGER);" nl
+            "DROP(2);" nl)))
+         (make-primitive-from-code "L_MULT" "E_MULT" #f code const-table global-table))))
+
+(define make-div
+    (lambda(const-table global-table)
+       (let ((code (string-append
+            "MOV(R3, FPARG(1)); // Num of params" nl
+            "CMP(R3, IMM(0));" nl
+            "JUMP_EQ(L_err_lambda_args_count);" nl
+            "CMP(R3, IMM(1));" nl
+            "JUMP_NE(DIV_CONTINUE);" nl
+            "MOV(R0, FPARG(2));" nl
+            "MOV(R1, INDD(R0, 1));" nl
+            "MOV(R0, INDD(R0, 2));" nl
+            "JUMP(DIV_EXIT);" nl
+            "DIV_CONTINUE:" nl
+            "MOV(R0, FPARG(2));" nl
+            "MOV(R1, INDD(R0, 2));" nl
+            "MOV(R0, INDD(R0, 1));" nl
+            "MOV(R2, IMM(FP));" nl
+            "SUB(R2, IMM(6));" nl
+            "DECR(R3);" nl
+            "DIV_LOOP:" nl
+            "CMP(R3, IMM(0));" nl
+            "JUMP_LE(DIV_EXIT);" nl
+            "MOV(R4, STACK(R2));" nl
+            "PUSH(IMM(R4));" nl
+            "PUSH(IMM(R1));" nl
+            "PUSH(IMM(R0));" nl
+            "CALL(DIVI);" nl
+            "DROP(3);" nl
+            "DECR(R2);" nl
+            "DECR(R3);" nl
+            "JUMP(DIV_LOOP);" nl
+            "DIV_EXIT:" nl
+            "PUSH(IMM(R0));" nl
+            "PUSH(IMM(R1));" nl
+            "CALL(MAKE_SOB_INTEGER);" nl
+            "DROP(2);" nl)))
+         (make-primitive-from-code "L_DIV" "E_DIV" #f code const-table global-table))))
 
 ; = primitive
 (define make-num-eq
@@ -1598,6 +1677,8 @@
             "JUMP_NE(L_err_invalid_param);" nl
             "CMP(INDD(R4,1), INDD(R3, 1));" nl
             "JUMP_NE(NUM_EQ_NOT_EQ);" nl
+            "CMP(INDD(R4,2), INDD(R3, 2));" nl
+            "JUMP_NE(NUM_EQ_NOT_EQ);" nl
             "DECR(R2);" nl
             "DECR(R1);" nl
             "JUMP(NUM_EQ_LOOP);" nl
@@ -1610,29 +1691,35 @@
 (define make-gt
     (lambda(const-table global-table)
        (let ((code (string-append
-            "MOV(R1, FPARG(1)); // Num of params" nl
-            "CMP(R1, 0);" nl
+            "MOV(R5, FPARG(1)); // Num of params" nl
+            "CMP(R5, 0);" nl
             "JUMP_EQ(L_err_lambda_args_count);" nl
             "MOV(R2, IMM(FP));" nl
             "SUB(R2, IMM(5));" nl
             "MOV(R3, STACK(R2));" nl
             "DECR(R2);" nl
-            "MOV(R0, IMM(SOB_TRUE));" nl
             "GT_LOOP:" nl
-            "CMP(R1, IMM(1));" nl
-            "JUMP_LE(GT_EXIT);" nl
+            "CMP(R5, IMM(1));" nl
+            "JUMP_LE(GT_TRUE);" nl
             "MOV(R4, STACK(R2));" nl
             "CMP(INDD(R4,0), T_INTEGER);" nl
             "JUMP_NE(L_err_invalid_param);" nl
-            "CMP(INDD(R3,1), INDD(R4, 1));" nl
-            "JUMP_LE(GT_NOT_GT);" nl
+            "PUSH(IMM(R4));" nl
+            "PUSH(INDD(R3, 2));" nl
+            "PUSH(INDD(R3, 1));" nl
+            "CALL(SUBSTRACT);" nl
+            "DROP(3);" nl
+            "CMP(R0, 0);" nl
+            "JUMP_LE(GT_FALSE);" nl
             "MOV(R3, STACK(R2));" nl
             "DECR(R2);" nl
-            "DECR(R1);" nl
+            "DECR(R5);" nl
             "JUMP(GT_LOOP);" nl
-            "GT_NOT_GT:" nl
-            "MOV(R0, IMM(SOB_FALSE));" nl
+            "GT_TRUE:" nl
+            "MOV(R0, IMM(SOB_TRUE));" nl
             "JUMP(GT_EXIT);" nl
+            "GT_FALSE:" nl
+            "MOV(R0, IMM(SOB_FALSE));" nl
             "GT_EXIT:" nl)))
          (make-primitive-from-code "L_GT" "E_GT" #f code const-table global-table))))
 
