@@ -1363,7 +1363,9 @@
                                   (47 number? ,make-number?)
                                   (48 rational? ,make-rational?)
                                   (49 symbol->string ,make-symbol->string)
-                                  (50 string->symbol ,make-string->symbol)))))
+                                  (50 string->symbol ,make-string->symbol)
+                                  (51 set-car! ,make-set-car!)
+                                  (52 set-cdr! ,make-set-cdr!)))))
              (make-global-table-helper parsed-expr-list global-table)
              (unbox global-table))))
 
@@ -2073,6 +2075,23 @@
             )))
           (make-primitive-from-code "L_apply" "E_APPLY" 2 code const-table global-table))))
 
+(define make-set-car!
+     (lambda(const-table global-table)
+         (let ((code (string-append
+             "MOV(R0, FPARG(2));" nl
+             "CMP(IND(R0), T_PAIR);" nl
+             "JUMP_NE(L_err_invalid_param);" nl
+             "MOV(INDD(R0, 1), FPARG(3));" nl)))
+           (make-primitive-from-code "L_SET_CAR" "E_PRIVATE" 2 code const-table global-table))))
+
+(define make-set-cdr!
+     (lambda(const-table global-table)
+         (let ((code (string-append
+             "MOV(R0, FPARG(2));" nl
+             "CMP(IND(R0), T_PAIR);" nl
+             "JUMP_NE(L_err_invalid_param);" nl
+             "MOV(INDD(R0, 2), FPARG(3));" nl)))
+           (make-primitive-from-code "L_SET_CDR" "E_PRIVATE" 2 code const-table global-table))))
 
 (define make-char->integer
     (lambda(const-table global-table)
@@ -2710,12 +2729,18 @@
               (val (caddr expr)))
         (string-append
            "// " (format "~s" expr) nl
-           (code-gen var const-table global-table major)
-           "PUSH(IMM(R0)); // Save the var before calculating val" nl
            (code-gen val const-table global-table major)
-           "POP(R1);" nl
-           "MOV(IND(R1), R0);" nl
-           ))))
+           "PUSH(IMM(R0)); // Save the value before calculating a pointer to var" nl
+           (if (eq? (car var) 'pvar)
+               (string-append
+                   "MOV(R0, FP);" nl
+                   "SUB(R0, " (number->string (+ 5 (caddr var))) ");" nl
+                   "POP(R1);" nl
+                   "MOV(STACK(R0), R1);" nl)
+               (string-append
+                   (code-gen var const-table global-table major)
+                   "POP(R1);" nl
+                   "MOV(IND(R0), R1);" nl))))))
 
 (define code-gen-box
     (lambda(expr const-table global-table major)
