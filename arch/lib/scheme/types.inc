@@ -54,10 +54,12 @@
 #define E_UNBOX     294755
 #define E_MULT      989204
 #define E_DIV       646495
+#define E_STRING_TO_SYMBOL 725032
+#define E_SYMBOL_TO_STRING 234097
 
 /*
  *
  *
  *
- *     725032 234097
+ *
  */

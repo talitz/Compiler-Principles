@@ -87,7 +87,7 @@
   printf("----------------------------\n");                                           \
   printf("Memory Info:\n");                                                           \
   printf("----------------------------\n");                                           \
-  for (i = 0; i <= 200; i += 4) {                                                      \
+  for (i = 0; i <= 350; i += 4) {                                                      \
     TRANS(IND(i), type1); TRANS(IND(i + 1), type2);                                   \
     TRANS(IND(i + 2) ,type3); TRANS(IND(i + 3), type4);                               \
     printf("MEM[%d] = %-10s\t MEM[%d] = %-10s\t MEM[%d] = %-10s\t MEM[%d] = %-10s\n", \

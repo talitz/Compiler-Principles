@@ -1145,6 +1145,7 @@
 (define const-false-register "R12")
 (define const-table-register "R11")
 (define global-table-register "R10")
+(define symbol-string-list-register "R9")
 
 (define compile-scheme-file
     (lambda(scheme-path target-path)
@@ -1183,7 +1184,9 @@
                                    (4 #t ("T_BOOL" "1"))
                                    (6 0 ("T_INTEGER" "0" "1"))
                                    (9 1 ("T_INTEGER" "1" "1"))
-                                   (12 2 ("T_INTEGER" "2" "1"))))))
+                                   (12 2 ("T_INTEGER" "2" "1"))
+                                   (15 "a" ("T_STRING" "1" ,(number->string (char->integer #\a))))
+                                   (18 'a ("T_SYMBOL" "16"))))))
              (make-const-table-helper parsed-expr-list const-table)
              (unbox const-table))))
 
@@ -1234,14 +1237,18 @@
                   ((string? val) (append const-table `((,new-addr ,val ("T_STRING"
                       ,(number->string (length (string->list val)))
                       ,@(string-repr val))))))
-                  ((symbol? val)
-                      (let ((str (symbol->string val)))
-                         (append const-table `((,new-addr ,val ("T_SYMBOL"
-                            ,(number->string (length (string->list str)))
-                            ,@(string-repr str)))))))
+                  ((symbol? val) (make-const-table-symbol val const-table))
                   ((pair? val) (make-const-table-pair val const-table))
                   ((vector? val) (make-const-table-vector val const-table))
                   (else const-table)))))
+
+(define make-const-table-symbol
+     (lambda(val const-table)
+          (let* ((str (symbol->string val))
+                 (new-table (make-const-table-single str const-table))
+                 (new-addr (const-table-new-address new-table))
+                 (str-addr (+ (member-const-table str new-table) 1)))
+              (append new-table `((,new-addr ,val ("T_SYMBOL" ,(number->string str-addr))))))))
 
 (define make-const-table-pair
      (lambda(val const-table)
@@ -1280,6 +1287,29 @@
                          (string-append a res)))
                      "" repr))))
                          "" table))))
+
+(define make-const-table-symbol-str-list
+     (lambda (table)
+         (let* ((symbols (filter (lambda(x) (equal? "T_SYMBOL" (car (caddr x)))) table))
+                (num-symbols (length symbols))
+                (symbol-list-size (* num-symbols 2)))
+             (string-append
+                   "PUSH(IMM(" (number->string symbol-list-size) "));" nl
+                   "CALL(MALLOC);" nl
+                   "DROP(1);" nl
+                   "MOV(SYMBOL_STRING_LIST, IMM(R0));" nl
+                   (let ((counter (box 0)))
+                      (fold-left (lambda(text sym)
+                         (let ((res (string-append
+                                 text
+                                 "MOV(INDD(SYMBOL_STRING_LIST, " (number->string (unbox counter)) "), "
+                                    (cadr (caddr sym)) ");" nl
+                                 "MOV(INDD(SYMBOL_STRING_LIST, " (number->string (+ (unbox counter) 1)) "), "
+                                    (number->string (if (>= (+ (unbox counter) 2) symbol-list-size) 0 (+ (unbox counter) 2)))
+                                    ");" nl)))
+                              (set-box! counter (+ (unbox counter) 2))
+                              res)) "" symbols))))))
+
 
 (define make-global-table
      (lambda(parsed-expr-list)
@@ -1329,7 +1359,11 @@
                                   (43 / ,make-div)
                                   (44 denominator ,make-denominator)
                                   (45 numerator ,make-numerator)
-                                  (46 remainder ,make-remainder)))))
+                                  (46 remainder ,make-remainder)
+                                  (47 number? ,make-number?)
+                                  (48 rational? ,make-rational?)
+                                  (49 symbol->string ,make-symbol->string)
+                                  (50 string->symbol ,make-string->symbol)))))
              (make-global-table-helper parsed-expr-list global-table)
              (unbox global-table))))
 
@@ -1456,8 +1490,17 @@
 (define make-eq?
     (lambda(const-table global-table)
        (let ((code (string-append
-          "CMP(FPARG(2), FPARG(3));" nl
+          "MOV(R1, FPARG(2));" nl
+          "MOV(R2, FPARG(3));" nl
           "MOV(R0, IMM(SOB_FALSE));" nl
+          "CMP(IND(R1), T_SYMBOL);" nl
+          "JUMP_NE(EQ_NOT_SYMBOL);" nl
+          "CMP(IND(R2), T_SYMBOL);" nl
+          "JUMP_NE(L_eq_exit);" nl
+          "MOV(R1, INDD(R1, 1));" nl
+          "MOV(R2, INDD(R2, 1));" nl
+          "EQ_NOT_SYMBOL:" nl
+          "CMP(IMM(R1), IMM(R2));" nl
           "JUMP_NE(L_eq_exit);" nl
           "MOV(R0, IMM(SOB_TRUE));" nl
           "L_eq_exit:" nl)))
@@ -2062,6 +2105,53 @@
           "DROP(1);" nl)))
          (make-primitive-from-code "L_integer_to_char" "E_INTEGER_TO_CHAR" 1 code const-table global-table))))
 
+(define make-symbol->string
+    (lambda(const-table global-table)
+        (let ((code (string-append
+             "MOV(R0, FPARG(2));" nl
+             "CMP(IND(R0), T_SYMBOL);" nl
+             "JUMP_NE(L_err_invalid_param);" nl
+             "MOV(R0, INDD(R0, 1));" nl)))
+           (make-primitive-from-code "L_symbol_to_string" "E_SYMBOL_TO_STRING" 1 code const-table global-table))))
+
+(define make-string->symbol
+    (lambda(const-table global-table)
+        (let ((code (string-append
+            "MOV(R1, FPARG(2));" nl
+            "CMP(IND(R1), T_STRING);" nl
+            "JUMP_NE(L_err_invalid_param);" nl
+            "// Search for the string in the symbol string list" nl
+            "MOV(R2, IMM(SYMBOL_STRING_LIST));" nl
+            "L_FIND_STRING_LOOP:" nl
+            "PUSH(INDD(R2, 0));" nl
+            "PUSH(R1);" nl
+            "CALL(COMPARE_SOB_STRING);" nl
+            "DROP(2);" nl
+            "CMP(R0, 1);" nl
+            "JUMP_EQ(L_STRING_FOUND);" nl
+            "CMP(INDD(R2, 1), 0);" nl
+            "JUMP_EQ(L_STRING_NOT_FOUND);" nl
+            "MOV(R2, INDD(R2, 1));" nl
+            "JUMP(L_FIND_STRING_LOOP);" nl
+            "L_STRING_NOT_FOUND:" nl
+            "PUSH(IMM(2));" nl
+            "CALL(MALLOC);" nl
+            "DROP(1);" nl
+            "MOV(INDD(R2, 1), IMM(R0));" nl
+            "MOV(INDD(R0, 0), IMM(R1));" nl
+            "MOV(INDD(R0, 1), IMM(0));" nl
+            "JUMP(L_STRING_TO_SYMBOL_CONT);" nl
+            "L_STRING_FOUND:" nl
+            "MOV(R1, INDD(R2, 0));" nl
+            "L_STRING_TO_SYMBOL_CONT:" nl
+            "// Create symbol" nl
+            "PUSH(IMM(2));" nl
+            "CALL(MALLOC);" nl
+            "DROP(1);" nl
+            "MOV(INDD(R0, 0), T_SYMBOL);" nl
+            "MOV(INDD(R0, 1), IMM(R1));" nl)))
+          (make-primitive-from-code "L_string_to_symbol" "E_STRING_TO_SYMBOL" 1 code const-table global-table))))
+
 (define make-predicate
     (lambda(label env-name func-name const-table global-table)
        (let ((code (string-append
@@ -2073,9 +2163,28 @@
           "DROP(1);" nl)))
          (make-primitive-from-code label env-name 1 code const-table global-table))))
 
+(define make-number?
+    (lambda(const-table global-table)
+       (make-predicate "L_pnumber" "E_PRIVATE" "IS_SOB_INTEGER" const-table global-table)))
+
 (define make-integer?
     (lambda(const-table global-table)
-       (make-predicate "L_pinteger" "E_PINTEGER" "IS_SOB_INTEGER" const-table global-table)))
+      (let ((code (string-append
+          "MOV(R0, FPARG(2));" nl
+          "CMP(IND(R0), T_INTEGER);" nl
+          "JUMP_NE(L_PINTEGER_FALSE);" nl
+          "CMP(INDD(R0, 2), 1);" nl
+          "JUMP_NE(L_PINTEGER_FALSE);" nl
+          "MOV(R0, IMM(SOB_TRUE));" nl
+          "JUMP(L_PINTEGER_EXIT);" nl
+          "L_PINTEGER_FALSE:" nl
+          "MOV(R0, IMM(SOB_FALSE));" nl
+          "L_PINTEGER_EXIT:" nl)))
+       (make-primitive-from-code "L_pinteger" "E_PINTEGER" 1 code const-table global-table))))
+
+(define make-rational?
+    (lambda(const-table global-table)
+        (make-primitive-from-scheme "L_prational" "E_PRIVATE" '(lambda(x) (number? x)) const-table global-table)))
 
 (define make-boolean?
     (lambda(const-table global-table)
@@ -2132,6 +2241,7 @@
             nl
             "#define CONST_TABLE " const-table-register nl
             "#define GLOBAL_TABLE " global-table-register nl
+            "#define SYMBOL_STRING_LIST " symbol-string-list-register nl
             nl
             "#define SOB_NIL " const-nil-register nl
             "#define SOB_VOID " const-void-register nl
@@ -2146,6 +2256,7 @@
             "DROP(1);" nl
             "MOV(CONST_TABLE, R0);" nl
             (make-const-table-mov-instructions const-table)
+            (make-const-table-symbol-str-list const-table)
             func-epilogue
             nl
             nl
