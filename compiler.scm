@@ -1150,8 +1150,7 @@
 (define compile-scheme-file
     (lambda(scheme-path target-path)
           (let* ((txt-string (file->string scheme-path))
-                 (reader (open-input-string txt-string))
-                 (expr-list (read-expr-list reader))
+                 (expr-list (read-expr-list txt-string))
                  (parsed-expr-list (map full-parse expr-list))
                  (const-table (make-const-table parsed-expr-list))
                  (global-table (make-global-table parsed-expr-list))
@@ -1170,11 +1169,15 @@
 (print-gensym #f)
 
 (define read-expr-list
-    (lambda(reader)
-          (let ((exp (read reader)))
-              (if (eq? exp #!eof)
-                  '()
-                  (cons exp (read-expr-list reader))))))
+    (lambda(txt-string)
+        (letrec ((helper (lambda(txt-string acc)
+            (if (eq? (string-length txt-string) 0)
+                acc
+                (let* ((res (test-string <sexpr> txt-string))
+                       (rem (cadadr res))
+                       (match (cadar res)))
+                    (helper rem (cons match acc)))))))
+                (reverse (helper txt-string '())))))
 
 (define make-const-table
      (lambda(parsed-expr-list)
