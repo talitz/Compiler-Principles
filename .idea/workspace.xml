@@ -4,7 +4,6 @@
     <list default="true" id="055aa2a0-97b1-45c6-b577-9986729c04db" name="Default" comment="">
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/arch/test" afterPath="$PROJECT_DIR$/arch/test" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/arch/cisc.h" afterPath="$PROJECT_DIR$/arch/cisc.h" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/arch/test.c" afterPath="$PROJECT_DIR$/arch/test.c" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/arch/test.scm" afterPath="$PROJECT_DIR$/arch/test.scm" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/compiler.scm" afterPath="$PROJECT_DIR$/compiler.scm" />
@@ -35,11 +34,21 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="compiler.scm" pinned="false" current-in-tab="false">
+      <file leaf-file-name="compiler.scm" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/compiler.scm">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="516">
-              <caret line="1179" column="52" selection-start-line="1179" selection-start-column="52" selection-end-line="1179" selection-end-column="52" />
+            <state relative-caret-position="418">
+              <caret line="2682" column="36" selection-start-line="2682" selection-start-column="36" selection-end-line="2682" selection-end-column="36" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="strcpy.asm" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/arch/lib/string/strcpy.asm">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="176">
+              <caret line="8" column="15" selection-start-line="8" selection-start-column="10" selection-end-line="8" selection-end-column="15" />
               <folding />
             </state>
           </provider>
@@ -48,8 +57,18 @@
       <file leaf-file-name="pc.scm" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/pc.scm">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="318">
-              <caret line="408" column="42" selection-start-line="408" selection-start-column="30" selection-end-line="408" selection-end-column="42" />
+            <state relative-caret-position="5060">
+              <caret line="230" column="16" selection-start-line="230" selection-start-column="14" selection-end-line="230" selection-end-column="16" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="pattern-matcher.scm" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/pattern-matcher.scm">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="550">
+              <caret line="25" column="17" selection-start-line="25" selection-start-column="15" selection-end-line="25" selection-end-column="17" />
               <folding />
             </state>
           </provider>
@@ -58,28 +77,18 @@
       <file leaf-file-name="test.scm" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/test.scm">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="318">
+            <state relative-caret-position="7942">
               <caret line="361" column="14" selection-start-line="361" selection-start-column="12" selection-end-line="361" selection-end-column="14" />
               <folding />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="test.scm" pinned="false" current-in-tab="true">
+      <file leaf-file-name="test.scm" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/arch/test.scm">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="44">
-              <caret line="2" column="7" selection-start-line="2" selection-start-column="7" selection-end-line="2" selection-end-column="7" />
-              <folding />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="cisc.h" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/arch/cisc.h">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="330">
-              <caret line="15" column="27" selection-start-line="15" selection-start-column="27" selection-end-line="15" selection-end-column="27" />
+            <state relative-caret-position="0">
+              <caret line="0" column="24" selection-start-line="0" selection-start-column="24" selection-end-line="0" selection-end-column="24" />
               <folding />
             </state>
           </provider>
@@ -88,8 +97,18 @@
       <file leaf-file-name="test.c" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/arch/test.c">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="79706">
-              <caret line="3623" column="5" selection-start-line="3623" selection-start-column="5" selection-end-line="3623" selection-end-column="5" />
+            <state relative-caret-position="484">
+              <caret line="3427" column="11" selection-start-line="3427" selection-start-column="11" selection-end-line="3427" selection-end-column="11" />
+              <folding />
+            </state>
+          </provider>
+        </entry>
+      </file>
+      <file leaf-file-name="debug_macros.h" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/arch/debug_macros.h">
+          <provider selected="true" editor-type-id="text-editor">
+            <state relative-caret-position="-286">
+              <caret line="38" column="6" selection-start-line="38" selection-start-column="6" selection-end-line="38" selection-end-column="6" />
               <folding />
             </state>
           </provider>
@@ -183,10 +202,11 @@
         <option value="$PROJECT_DIR$/arch/scheme.lib" />
         <option value="$PROJECT_DIR$/arch/lib/scheme/compare_sob_string.asm" />
         <option value="$PROJECT_DIR$/arch/debug_macros.h" />
-        <option value="$PROJECT_DIR$/arch/test.c" />
         <option value="$PROJECT_DIR$/test-cases/torture-test-for-compiler-06.scm" />
         <option value="$PROJECT_DIR$/arch/cisc.h" />
+        <option value="$PROJECT_DIR$/pc.scm" />
         <option value="$PROJECT_DIR$/arch/test.scm" />
+        <option value="$PROJECT_DIR$/arch/test.c" />
         <option value="$PROJECT_DIR$/compiler.scm" />
       </list>
     </option>
@@ -248,13 +268,67 @@
               <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
             </PATH_ELEMENT>
           </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="Compiler-Principles" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="Compiler-Principles" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="arch" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="Compiler-Principles" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="Compiler-Principles" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="arch" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="lib" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
+          <PATH>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="Compiler-Principles" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.ProjectViewProjectNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="Compiler-Principles" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="arch" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="lib" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+            <PATH_ELEMENT>
+              <option name="myItemId" value="string" />
+              <option name="myItemType" value="com.intellij.ide.projectView.impl.nodes.PsiDirectoryNode" />
+            </PATH_ELEMENT>
+          </PATH>
         </subPane>
       </pane>
     </panes>
   </component>
   <component name="PropertiesComponent">
     <property name="settings.editor.selected.configurable" value="preferences.lookFeel" />
-    <property name="SearchEverywhereHistoryKey" value="pc.scm&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/pc.scm&#10;cisc.h&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/cisc.h&#10;test.c&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/test.c&#10;test.scm&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/test.scm&#10;debug&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/debug_macros.h&#10;scheme.lib&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/scheme.lib&#10;types.inc&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/lib/scheme/types.inc&#10;is_sob_integer&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/lib/scheme/is_sob_integer.asm&#10;write_sob&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/lib/scheme/write_sob.asm&#10;write_sob_string&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/lib/scheme/write_sob_string.asm&#10;types.&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/lib/scheme/types.inc&#10;math.lib&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/math.lib&#10;make_sob_integer&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/lib/scheme/make_sob_integer.asm&#10;write_sob_inte&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/lib/scheme/write_sob_integer.asm&#10;write_sob.as&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/lib/scheme/write_sob.asm&#10;scheme.l&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/scheme.lib&#10;make_sob_&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/lib/scheme/make_sob_pair.asm&#10;make_sob_box&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/lib/scheme/make_sob_box.asm&#10;compiler.scm&#9;FILE&#9;file://D:/Courses/compilation/Compiler-Principles/hw3/compiler.scm&#10;deb&#9;FILE&#9;file://D:/Courses/compilation/Compiler-Principles/arch/debug_macros.h&#10;scheme.&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/scheme.lib&#10;testCompiler.scm&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/testCompiler.scm&#10;unitTests&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/unitTests.scm&#10;is_sob&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/lib/scheme/is_sob_integer.asm&#10;arch/test.scm&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/test.scm&#10;make_sob_pair&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/lib/scheme/make_sob_pair.asm&#10;malloc.&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/lib/system/malloc.asm&#10;malloc&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/lib/system/malloc.asm&#10;malloc.asm&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/lib/system/malloc.asm" />
+    <property name="SearchEverywhereHistoryKey" value="debug&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/debug_macros.h&#10;cisc.h&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/cisc.h&#10;pc.scm&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/pc.scm&#10;test.c&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/test.c&#10;test.scm&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/test.scm&#10;scheme.lib&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/scheme.lib&#10;types.inc&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/lib/scheme/types.inc&#10;is_sob_integer&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/lib/scheme/is_sob_integer.asm&#10;write_sob&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/lib/scheme/write_sob.asm&#10;write_sob_string&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/lib/scheme/write_sob_string.asm&#10;types.&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/lib/scheme/types.inc&#10;math.lib&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/math.lib&#10;make_sob_integer&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/lib/scheme/make_sob_integer.asm&#10;write_sob_inte&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/lib/scheme/write_sob_integer.asm&#10;write_sob.as&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/lib/scheme/write_sob.asm&#10;scheme.l&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/scheme.lib&#10;make_sob_&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/lib/scheme/make_sob_pair.asm&#10;make_sob_box&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/lib/scheme/make_sob_box.asm&#10;compiler.scm&#9;FILE&#9;file://D:/Courses/compilation/Compiler-Principles/hw3/compiler.scm&#10;deb&#9;FILE&#9;file://D:/Courses/compilation/Compiler-Principles/arch/debug_macros.h&#10;scheme.&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/scheme.lib&#10;testCompiler.scm&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/testCompiler.scm&#10;unitTests&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/unitTests.scm&#10;is_sob&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/lib/scheme/is_sob_integer.asm&#10;arch/test.scm&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/test.scm&#10;make_sob_pair&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/lib/scheme/make_sob_pair.asm&#10;malloc.&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/lib/system/malloc.asm&#10;malloc&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/lib/system/malloc.asm&#10;malloc.asm&#9;FILE&#9;file://C:/Users/Study/Courses/compilation/Compiler-Principles/arch/lib/system/malloc.asm" />
     <property name="WebServerToolWindowFactoryState" value="false" />
     <property name="last_opened_file_path" value="$PROJECT_DIR$" />
     <property name="js.eslint.eslintPackage" value="" />
@@ -434,6 +508,7 @@
       <window_info id="Project" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.16927083" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32980973" sideWeight="0.5" order="7" side_tool="true" content_ui="tabs" />
+      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.43358946" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32875264" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="7" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
@@ -445,7 +520,6 @@
       <window_info id="Inspection" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="5" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="2" side_tool="false" content_ui="tabs" />
       <window_info id="Hierarchy" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="2" side_tool="false" content_ui="combo" />
-      <window_info id="Find" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.43446088" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
       <window_info id="Ant Build" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
       <window_info id="Debug" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.4" sideWeight="0.5" order="3" side_tool="false" content_ui="tabs" />
@@ -470,13 +544,6 @@
     <watches-manager />
   </component>
   <component name="editorHistoryManager">
-    <entry file="file://$PROJECT_DIR$/arch/lib/math/is_zero.asm">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/arch/lib/math/ack.asm">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="119">
@@ -631,13 +698,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/arch/lib/string/strcpy.asm">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/test-cases/2test01.scm">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
@@ -666,31 +726,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/arch/scheme.lib">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="0">
-          <caret line="0" column="13" selection-start-line="0" selection-start-column="13" selection-end-line="0" selection-end-column="13" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/arch/lib/scheme/is_sob_integer.asm">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="119">
           <caret line="7" column="0" selection-start-line="7" selection-start-column="0" selection-end-line="7" selection-end-column="0" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/arch/lib/scheme/compare_sob_string.asm">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="136">
-          <caret line="8" column="20" selection-start-line="8" selection-start-column="20" selection-end-line="8" selection-end-column="20" />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/arch/debug_macros.h">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="629">
-          <caret line="89" column="22" selection-start-line="89" selection-start-column="22" selection-end-line="89" selection-end-column="22" />
         </state>
       </provider>
     </entry>
@@ -743,14 +782,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/arch/test.c">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="79706">
-          <caret line="3623" column="5" selection-start-line="3623" selection-start-column="5" selection-end-line="3623" selection-end-column="5" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/test-cases/torture-test-for-compiler-07.scm">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="136">
@@ -786,26 +817,10 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/arch/cisc.h">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="330">
-          <caret line="15" column="27" selection-start-line="15" selection-start-column="27" selection-end-line="15" selection-end-column="27" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$PROJECT_DIR$/test.scm">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="318">
+        <state relative-caret-position="7942">
           <caret line="361" column="14" selection-start-line="361" selection-start-column="12" selection-end-line="361" selection-end-column="14" />
-          <folding />
-        </state>
-      </provider>
-    </entry>
-    <entry file="file://$PROJECT_DIR$/pc.scm">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="318">
-          <caret line="408" column="42" selection-start-line="408" selection-start-column="30" selection-end-line="408" selection-end-column="42" />
           <folding />
         </state>
       </provider>
@@ -814,22 +829,82 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="318">
           <caret line="75" column="25" selection-start-line="75" selection-start-column="25" selection-end-line="75" selection-end-column="25" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pattern-matcher.scm">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="550">
+          <caret line="25" column="17" selection-start-line="25" selection-start-column="15" selection-end-line="25" selection-end-column="17" />
           <folding />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/compiler.scm">
+    <entry file="file://$PROJECT_DIR$/arch/scheme.lib">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="516">
-          <caret line="1179" column="52" selection-start-line="1179" selection-start-column="52" selection-end-line="1179" selection-end-column="52" />
+        <state relative-caret-position="388">
+          <caret line="38" column="39" selection-start-line="38" selection-start-column="21" selection-end-line="38" selection-end-column="39" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/arch/lib/scheme/compare_sob_string.asm">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="0">
+          <caret line="0" column="0" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/arch/cisc.h">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="444">
+          <caret line="76" column="28" selection-start-line="76" selection-start-column="28" selection-end-line="76" selection-end-column="28" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/pc.scm">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="5060">
+          <caret line="230" column="16" selection-start-line="230" selection-start-column="14" selection-end-line="230" selection-end-column="16" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/arch/lib/string/strcpy.asm">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="176">
+          <caret line="8" column="15" selection-start-line="8" selection-start-column="10" selection-end-line="8" selection-end-column="15" />
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/arch/test.scm">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="44">
-          <caret line="2" column="7" selection-start-line="2" selection-start-column="7" selection-end-line="2" selection-end-column="7" />
+        <state relative-caret-position="0">
+          <caret line="0" column="24" selection-start-line="0" selection-start-column="24" selection-end-line="0" selection-end-column="24" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/arch/debug_macros.h">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-286">
+          <caret line="38" column="6" selection-start-line="38" selection-start-column="6" selection-end-line="38" selection-end-column="6" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/arch/test.c">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="484">
+          <caret line="3427" column="11" selection-start-line="3427" selection-start-column="11" selection-end-line="3427" selection-end-column="11" />
+          <folding />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/compiler.scm">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="418">
+          <caret line="2682" column="36" selection-start-line="2682" selection-start-column="36" selection-end-line="2682" selection-end-column="36" />
           <folding />
         </state>
       </provider>

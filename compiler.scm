@@ -2130,10 +2130,24 @@
 (define make-symbol->string
     (lambda(const-table global-table)
         (let ((code (string-append
-             "MOV(R0, FPARG(2));" nl
-             "CMP(IND(R0), T_SYMBOL);" nl
+             "MOV(R1, FPARG(2));" nl
+             "CMP(IND(R1), T_SYMBOL);" nl
              "JUMP_NE(L_err_invalid_param);" nl
-             "MOV(R0, INDD(R0, 1));" nl)))
+             "MOV(R1, INDD(R1, 1));" nl
+             "PUSH(INDD(R1, 1));" nl
+             "CALL(MALLOC);" nl
+             "DROP(1);" nl
+             "MOV(INDD(R0, 0), INDD(R1, 0));" nl
+             "MOV(INDD(R0, 1), INDD(R1, 1));" nl
+             "MOV(R2, IMM(R1));" nl
+             "ADD(R2, IMM(2));" nl
+             "MOV(R3, IMM(R0));" nl
+             "ADD(R0, IMM(2));" nl
+             "PUSH(IMM(R2));" nl
+             "PUSH(IMM(R0));" nl
+             "CALL(STRCPY);" nl
+             "DROP(2);" nl
+             "MOV(R0, IMM(R3));" nl)))
            (make-primitive-from-code "L_symbol_to_string" "E_SYMBOL_TO_STRING" 1 code const-table global-table))))
 
 (define make-string->symbol

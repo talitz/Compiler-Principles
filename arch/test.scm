@@ -1,3 +1,1 @@
-##1+2
-5
-##15+12
+(symbol->string 'asdsds)
