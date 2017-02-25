@@ -21,3 +21,4 @@
 #include "lib/math/substract.asm"
 #include "lib/math/mult.asm"
 #include "lib/math/divi.asm"
+#include "lib/math/reduct.asm"

@@ -15,11 +15,8 @@ SUM:
   MUL(R1, R3);
   PUSH(R2);
   PUSH(R1);
-  CALL(GCD);
+  CALL(REDUCT);
   DROP(2);
-  DIV(R2, R0);
-  DIV(R1, R0);
-  MOV(R0, R2);
   POP(R3);
   POP(R2);
   POP(FP);

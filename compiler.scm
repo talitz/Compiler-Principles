@@ -1155,7 +1155,7 @@
                  (const-table (make-const-table parsed-expr-list))
                  (global-table (make-global-table parsed-expr-list))
                  (prologue (create-prologue const-table global-table))
-                 (code-txt-parts (map (lambda(x) (code-gen x const-table global-table 0)) parsed-expr-list))
+                 (code-txt-parts (map (lambda(x) (string-append (code-gen x const-table global-table 0) print-r0)) parsed-expr-list))
                  (code (apply string-append code-txt-parts))
                  (final-code (string-append prologue code epilogue)))
                    (delete-file target-path)
@@ -1557,13 +1557,12 @@
 
 (define make-map
     (lambda(const-table global-table)
-       (let ((code '(lambda(fun lst)
-         (if (null? lst)
-            '()
-            (if (list? (car lst))
-               (cons (map fun (car lst)) (map fun (cdr lst)))
-                 (cons (fun (car lst)) (map fun (cdr lst))))))))
-           (make-primitive-from-scheme "L_map" "E_MAP" code const-table global-table))))
+       (let* ((code '(lambda (f lst)
+   (if (null? lst)
+       '()
+       (cons (f (car lst)) (map f (cdr lst)))))))
+	  (make-primitive-from-scheme "L_map" "E_MAP" code const-table global-table))))
+
 
 (define make-clist
     (lambda(const-table global-table)
@@ -1617,10 +1616,17 @@
             "MOV(R3, FPARG(1)); // Num of params" nl
             "CMP(R3, 0);" nl
             "JUMP_EQ(L_err_lambda_args_count);" nl
+            "CMP(R3, 1);" nl
+            "JUMP_NE(MINUS_CONTINUE);" nl
             "MOV(R0, IMM(0));" nl
             "MOV(R1, IMM(1));" nl
-            "CMP(R3, 1);" nl
-            "JUMP_EQ(MINUS_EXIT);" nl
+            "PUSH(FPARG(2));" nl
+            "PUSH(IMM(R1));" nl
+            "PUSH(IMM(R0));" nl
+            "CALL(SUBSTRACT);" nl
+            "DROP(3);" nl
+            "JUMP(MINUS_EXIT);" nl
+            "MINUS_CONTINUE:" nl
             "MOV(R2, IMM(FP));" nl
             "SUB(R2, IMM(5));" nl
             "MOV(R4, STACK(R2));" nl
@@ -1682,9 +1688,12 @@
             "JUMP_EQ(L_err_lambda_args_count);" nl
             "CMP(R3, IMM(1));" nl
             "JUMP_NE(DIV_CONTINUE);" nl
+            "// Switch denominator and numerator" nl
             "MOV(R0, FPARG(2));" nl
-            "MOV(R1, INDD(R0, 1));" nl
-            "MOV(R0, INDD(R0, 2));" nl
+            "PUSH(INDD(R0, 2));" nl
+            "PUSH(INDD(R0, 1));" nl
+            "CALL(REDUCT);" nl
+            "DROP(2);" nl
             "JUMP(DIV_EXIT);" nl
             "DIV_CONTINUE:" nl
             "MOV(R0, FPARG(2));" nl
@@ -1694,8 +1703,6 @@
             "SUB(R2, IMM(6));" nl
             "DECR(R3);" nl
             "DIV_LOOP:" nl
-            "CMP(R3, IMM(0));" nl
-            "JUMP_LE(DIV_EXIT);" nl
             "MOV(R4, STACK(R2));" nl
             "PUSH(IMM(R4));" nl
             "PUSH(IMM(R1));" nl
@@ -1704,6 +1711,8 @@
             "DROP(3);" nl
             "DECR(R2);" nl
             "DECR(R3);" nl
+            "CMP(R3, IMM(0));" nl
+            "JUMP_LE(DIV_EXIT);" nl
             "JUMP(DIV_LOOP);" nl
             "DIV_EXIT:" nl
             "PUSH(IMM(R0));" nl
@@ -1741,6 +1750,41 @@
             "JUMP(NUM_EQ_EXIT);" nl
             "NUM_EQ_EXIT:" nl)))
          (make-primitive-from-code "L_NUM_EQ" "E_NUM_EQ" #f code const-table global-table))))
+
+(define make-lt
+    (lambda(const-table global-table)
+       (let ((code (string-append
+            "MOV(R5, FPARG(1)); // Num of params" nl
+            "CMP(R5, 0);" nl
+            "JUMP_EQ(L_err_lambda_args_count);" nl
+            "MOV(R2, IMM(FP));" nl
+            "SUB(R2, IMM(5));" nl
+            "MOV(R3, STACK(R2));" nl
+            "DECR(R2);" nl
+            "LT_LOOP:" nl
+            "CMP(R5, IMM(1));" nl
+            "JUMP_LE(LT_TRUE);" nl
+            "MOV(R4, STACK(R2));" nl
+            "CMP(INDD(R4,0), T_INTEGER);" nl
+            "JUMP_NE(L_err_invalid_param);" nl
+            "PUSH(IMM(R4));" nl
+            "PUSH(INDD(R3, 2));" nl
+            "PUSH(INDD(R3, 1));" nl
+            "CALL(SUBSTRACT);" nl
+            "DROP(3);" nl
+            "CMP(R0, 0);" nl
+            "JUMP_GE(LT_FALSE);" nl
+            "MOV(R3, STACK(R2));" nl
+            "DECR(R2);" nl
+            "DECR(R5);" nl
+            "JUMP(LT_LOOP);" nl
+            "LT_TRUE:" nl
+            "MOV(R0, IMM(SOB_TRUE));" nl
+            "JUMP(LT_EXIT);" nl
+            "LT_FALSE:" nl
+            "MOV(R0, IMM(SOB_FALSE));" nl
+            "LT_EXIT:" nl)))
+         (make-primitive-from-code "L_LT" "E_LT" #f code const-table global-table))))
 
 (define make-gt
     (lambda(const-table global-table)
@@ -1783,7 +1827,10 @@
             "MOV(R0, FPARG(2));" nl
             "CMP(IND(R0), T_INTEGER);" nl
             "JUMP_NE(L_err_invalid_param);" nl
-            "MOV(R0, INDD(R0, 2));" nl)))
+            "PUSH(INDD(R0, 2));" nl
+            "PUSH(IMM(1));" nl
+            "CALL(MAKE_SOB_INTEGER);" nl
+            "DROP(2);" nl)))
           (make-primitive-from-code "L_DENOMINATOR" "E_PRIVATE" 1 code const-table global-table))))
 
 (define make-remainder
@@ -1809,23 +1856,15 @@
             "MOV(R0, FPARG(2));" nl
             "CMP(IND(R0), T_INTEGER);" nl
             "JUMP_NE(L_err_invalid_param);" nl
-            "MOV(R0, INDD(R0, 1));" nl)))
+            "PUSH(INDD(R0, 1));" nl
+            "PUSH(IMM(1));" nl
+            "CALL(MAKE_SOB_INTEGER);" nl
+            "DROP(2);" nl)))
           (make-primitive-from-code "L_NUMERATOR" "E_PRIVATE" 1 code const-table global-table))))
 
 (define make-cadr
     (lambda(const-table global-table)
        (make-primitive-from-scheme "L_CADR" "E_CADR" '(lambda(l) (car (cdr l))) const-table global-table)))
-
-(define make-lt
-    (lambda(const-table global-table)
-       (let ((code
-          '(lambda v
-             (if (or (null? v) (null? (cdr v)))
-               #t
-               (let ((first (car v))
-                     (second (cadr v)))
-                  (and (not (> first second)) (not (= first second))))))))
-       (make-primitive-from-scheme "L_LT" "E_LT" code const-table global-table))))
 
 (define make-append-binary
     (lambda(const-table global-table)
@@ -2347,13 +2386,17 @@
             nl
             ))))
 
-
-(define epilogue
+(define print-r0
     (string-append
         "// Print R0" nl
         "PUSH(IMM(R0));" nl
         "CALL(WRITE_SOB_IF_NOT_VOID);" nl
         "DROP(1);" nl
+        ))
+
+
+(define epilogue
+    (string-append
         "EXIT:" nl
         "DROP(4); // Fake env" nl
         "STOP_MACHINE;" nl
@@ -2625,6 +2668,9 @@
         "JUMP_EQ(WRITE_SOB_IF_NOT_VOID_END);" nl
         "PUSH(FPARG(0));" nl
         "CALL(WRITE_SOB);" nl
+        "DROP(1);" nl
+        "PUSH(IMM('\\n'));" nl
+        "CALL(PUTCHAR);" nl
         "DROP(1);" nl
         "WRITE_SOB_IF_NOT_VOID_END:" nl
         func-epilogue))

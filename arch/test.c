@@ -31,7 +31,7 @@ JUMP(CONTINUE);
 INIT_CONST_TABLE:
 PUSH(FP);
 MOV(FP, SP);
-PUSH(IMM(30));
+PUSH(IMM(26));
 CALL(MALLOC);
 DROP(1);
 MOV(CONST_TABLE, R0);
@@ -55,24 +55,18 @@ MOV(INDD(CONST_TABLE, 16), IMM(1));
 MOV(INDD(CONST_TABLE, 17), IMM(97));
 MOV(INDD(CONST_TABLE, 18), IMM(T_SYMBOL));
 MOV(INDD(CONST_TABLE, 19), IMM(16));
-MOV(INDD(CONST_TABLE, 20), IMM(T_STRING));
-MOV(INDD(CONST_TABLE, 21), IMM(6));
-MOV(INDD(CONST_TABLE, 22), IMM(97));
-MOV(INDD(CONST_TABLE, 23), IMM(115));
-MOV(INDD(CONST_TABLE, 24), IMM(100));
-MOV(INDD(CONST_TABLE, 25), IMM(115));
-MOV(INDD(CONST_TABLE, 26), IMM(100));
-MOV(INDD(CONST_TABLE, 27), IMM(115));
-MOV(INDD(CONST_TABLE, 28), IMM(T_SYMBOL));
-MOV(INDD(CONST_TABLE, 29), IMM(21));
-PUSH(IMM(4));
+MOV(INDD(CONST_TABLE, 20), IMM(T_INTEGER));
+MOV(INDD(CONST_TABLE, 21), IMM(9999));
+MOV(INDD(CONST_TABLE, 22), IMM(1));
+MOV(INDD(CONST_TABLE, 23), IMM(T_INTEGER));
+MOV(INDD(CONST_TABLE, 24), IMM(80));
+MOV(INDD(CONST_TABLE, 25), IMM(1));
+PUSH(IMM(2));
 CALL(MALLOC);
 DROP(1);
 MOV(SYMBOL_STRING_LIST, IMM(R0));
 MOV(INDD(SYMBOL_STRING_LIST, 0), 16);
-MOV(INDD(SYMBOL_STRING_LIST, 1), 2);
-MOV(INDD(SYMBOL_STRING_LIST, 2), 21);
-MOV(INDD(SYMBOL_STRING_LIST, 3), 0);
+MOV(INDD(SYMBOL_STRING_LIST, 1), 0);
 POP(FP);
 RETURN;
 
@@ -371,10 +365,17 @@ MOV(FP, SP);
 MOV(R3, FPARG(1)); // Num of params
 CMP(R3, 0);
 JUMP_EQ(L_err_lambda_args_count);
+CMP(R3, 1);
+JUMP_NE(MINUS_CONTINUE);
 MOV(R0, IMM(0));
 MOV(R1, IMM(1));
-CMP(R3, 1);
-JUMP_EQ(MINUS_EXIT);
+PUSH(FPARG(2));
+PUSH(IMM(R1));
+PUSH(IMM(R0));
+CALL(SUBSTRACT);
+DROP(3);
+JUMP(MINUS_EXIT);
+MINUS_CONTINUE:
 MOV(R2, IMM(FP));
 SUB(R2, IMM(5));
 MOV(R4, STACK(R2));
@@ -946,356 +947,50 @@ PUSH(IMM(E_GT));
 CALL(MAKE_SOB_CLOSURE);
 DROP(2);
 MOV(INDD(GLOBAL_TABLE, 24), IMM(R0));
-JUMP(L_make_closure_g65);
+JUMP(L_make_closure_g42);
 L_LT:
 PUSH(FP);
 MOV(FP, SP);
-// Lambda-opt/var body
-// Init R2 with the length of the var list
-MOV(R2, FPARG(1));
-SUB(R2, IMM(0));
-// Save the var list length in R6 for later
-MOV(R6, IMM(R2));
-// Create var list
-MOV(R0, SOB_NIL); // Result of var list in R0
-MOV(R3, IMM(FP));
-SUB(R3, IMM(4));
-SUB(R3, FPARG(1)); // Save increasing stack pointer in R3
-L_var_list_loop_g48:
-CMP(R2, 0);
-JUMP_LE(L_var_list_loop_end_g47);
-PUSH(IMM(R0));
-PUSH(STACK(R3));
-CALL(MAKE_SOB_PAIR);
-DROP(2);
-INCR(R3);
+MOV(R5, FPARG(1)); // Num of params
+CMP(R5, 0);
+JUMP_EQ(L_err_lambda_args_count);
+MOV(R2, IMM(FP));
+SUB(R2, IMM(5));
+MOV(R3, STACK(R2));
 DECR(R2);
-JUMP(L_var_list_loop_g48);
-L_var_list_loop_end_g47:
-// Fix the stack
-CMP(R6, 0);
-JUMP_EQ(L_fix_stack_empty_var_list_g44);
-MOV(R1, IMM(FP));
-SUB(R1, IMM(3));
-SUB(R1, FPARG(1)); // R1 = bottom
-MOV(R2, IMM(FP));
-SUB(R2, IMM(4)); // R2 = bottom of non-optional params
-L_stack_loop_g46:
-CMP(R2, IMM(FP));
-JUMP_GE(L_stack_fix_end_g45);
-MOV(STACK(R1), STACK(R2));
-INCR(R1);
-INCR(R2);
-JUMP(L_stack_loop_g46);
-L_fix_stack_empty_var_list_g44:
-// Init R3 with the loop limit (position of first optional var in original stack)
-MOV(R3, IMM(FP));
-SUB(R3, IMM(4));
-MOV(R1, IMM(FP));
-INCR(R1);
-MOV(R2, IMM(FP));
-L_fix_stack_empty_loop_g43:
-CMP(R2, IMM(R3));
-JUMP_LE(L_stack_fix_empty_end_g42);
-MOV(STACK(R1), STACK(R2));
-DECR(R1);
+LT_LOOP:
+CMP(R5, IMM(1));
+JUMP_LE(LT_TRUE);
+MOV(R4, STACK(R2));
+CMP(INDD(R4,0), T_INTEGER);
+JUMP_NE(L_err_invalid_param);
+PUSH(IMM(R4));
+PUSH(INDD(R3, 2));
+PUSH(INDD(R3, 1));
+CALL(SUBSTRACT);
+DROP(3);
+CMP(R0, 0);
+JUMP_GE(LT_FALSE);
+MOV(R3, STACK(R2));
 DECR(R2);
-JUMP(L_fix_stack_empty_loop_g43);
-L_stack_fix_empty_end_g42:
-// Fix R1 to point to the new FP since the code below relies on that
-MOV(R1, IMM(FP));
-INCR(R1);
-L_stack_fix_end_g45:
-// Fix FP and SP
-MOV(FP, IMM(R1));
-MOV(SP, IMM(FP));
-// Fix the number of params
-SUB(R1, IMM(4));
-MOV(STACK(R1), IMM(1));
-// Write the var list
-SUB(R1, IMM(1));
-MOV(STACK(R1), IMM(R0)); // Put the var list
-// Actual body
-// if3
-// or
-// applic
-// (pvar v 0)
-MOV(R0, FPARG(2));
-PUSH(IMM(R0));
-PUSH(IMM(1)); // Num of params
-// (fvar null?)
-MOV(R0, INDD(GLOBAL_TABLE,18));
-CMP(INDD(R0, 0), IMM(T_CLOSURE));
-JUMP_NE(L_err_cannot_apply_non_clos);
-PUSH(INDD(R0, 1));
-CALLA(INDD(R0, 2));
-DROP(1); // env
-POP(R1); // num of args
-DROP(IMM(R1));
-CMP(R0, IMM(SOB_FALSE));
-JUMP_NE(L_or_exit_g64);
-// applic
-// applic
-// (pvar v 0)
-MOV(R0, FPARG(2));
-PUSH(IMM(R0));
-PUSH(IMM(1)); // Num of params
-// (fvar cdr)
-MOV(R0, INDD(GLOBAL_TABLE,4));
-CMP(INDD(R0, 0), IMM(T_CLOSURE));
-JUMP_NE(L_err_cannot_apply_non_clos);
-PUSH(INDD(R0, 1));
-CALLA(INDD(R0, 2));
-DROP(1); // env
-POP(R1); // num of args
-DROP(IMM(R1));
-PUSH(IMM(R0));
-PUSH(IMM(1)); // Num of params
-// (fvar null?)
-MOV(R0, INDD(GLOBAL_TABLE,18));
-CMP(INDD(R0, 0), IMM(T_CLOSURE));
-JUMP_NE(L_err_cannot_apply_non_clos);
-PUSH(INDD(R0, 1));
-CALLA(INDD(R0, 2));
-DROP(1); // env
-POP(R1); // num of args
-DROP(IMM(R1));
-CMP(R0, IMM(SOB_FALSE));
-JUMP_NE(L_or_exit_g64);
-
-L_or_exit_g64:
-CMP(R0, IMM(SOB_FALSE));
-JUMP_EQ(L_if3_else_g50);
-// (const #t)
-MOV(R0, CONST_TABLE);
-ADD(R0, 4);
-JUMP(L_if3_exit_g49);
-L_if3_else_g50:
-// tc-applic
-// applic
-// (pvar v 0)
-MOV(R0, FPARG(2));
-PUSH(IMM(R0));
-PUSH(IMM(1)); // Num of params
-// (fvar cadr)
-MOV(R0, INDD(GLOBAL_TABLE,6));
-CMP(INDD(R0, 0), IMM(T_CLOSURE));
-JUMP_NE(L_err_cannot_apply_non_clos);
-PUSH(INDD(R0, 1));
-CALLA(INDD(R0, 2));
-DROP(1); // env
-POP(R1); // num of args
-DROP(IMM(R1));
-PUSH(IMM(R0));
-// applic
-// (pvar v 0)
-MOV(R0, FPARG(2));
-PUSH(IMM(R0));
-PUSH(IMM(1)); // Num of params
-// (fvar car)
-MOV(R0, INDD(GLOBAL_TABLE,3));
-CMP(INDD(R0, 0), IMM(T_CLOSURE));
-JUMP_NE(L_err_cannot_apply_non_clos);
-PUSH(INDD(R0, 1));
-CALLA(INDD(R0, 2));
-DROP(1); // env
-POP(R1); // num of args
-DROP(IMM(R1));
-PUSH(IMM(R0));
-PUSH(IMM(2)); // Num of params
-// lambda
-// Allocate env list
-MOV(R1, FPARG(0));
-PUSH(IMM(2));
-CALL(MALLOC);
-DROP(1);
-MOV(R2, R0);
-
-// Copy old env
-XOR(R3, R3);
-MOV(R4, 1);
-L_clos_copy_env_begin_g54:
-CMP(R3, IMM(1));
-JUMP_GE(L_clos_copy_env_exit_g55);
-MOV(R5, R2);
-ADD(R5, R4);
-MOV(R6, R1);
-ADD(R6, R3);
-MOV(IND(R5), IND(R6));
-INCR(R3);
-INCR(R4);
-JUMP(L_clos_copy_env_begin_g54);
-L_clos_copy_env_exit_g55:
-
-// Allocate current env
-MOV(R3, FPARG(1)); // Number of last lambda params
-PUSH(IMM(R3));
-CALL(MALLOC);
-DROP(1);
-MOV(IND(R2), R0);
-CMP(R3, IMM(0));
-JUMP_NE(L_clos_params_not_empty_g58);
-MOV(IND(R2), IMM(E_EMPTY));
-L_clos_params_not_empty_g58:
-
-// Copy last lambda params
-XOR(R4, R4);
-MOV(R5, 1);
-L_clos_copy_params_begin_g56:
-CMP(R4, IMM(R3));
-JUMP_GE(L_clos_copy_params_exit_g57);
-MOV(R6, IND(R2));
-ADD(R6, R4);
-MOV(R7, IMM(FP));
-SUB(R7, IMM(4));
-SUB(R7, IMM(R5));
-MOV(IND(R6), STACK(R7));
-INCR(R4);
-INCR(R5);
-JUMP(L_clos_copy_params_begin_g56);
-L_clos_copy_params_exit_g57:
-
-// Allocate closure object
-PUSH(IMM(3));
-CALL(MALLOC);
-DROP(1);
-MOV(INDD(R0, 0), T_CLOSURE);
-MOV(INDD(R0, 1), IMM(R2)); // env
-MOV(INDD(R0, 2), LABEL(L_clos_body_g53));
-JUMP(L_clos_exit_g59);
-
-L_clos_body_g53:
-PUSH(FP);
-MOV(FP, SP);
-// Lambda-simple body
-CMP(FPARG(1), IMM(2));
-JUMP_NE(L_err_lambda_args_count);
-// Actual body
-// if3
-// applic
-// applic
-// (pvar second 1)
-MOV(R0, FPARG(3));
-PUSH(IMM(R0));
-// (pvar first 0)
-MOV(R0, FPARG(2));
-PUSH(IMM(R0));
-PUSH(IMM(2)); // Num of params
-// (fvar >)
-MOV(R0, INDD(GLOBAL_TABLE,24));
-CMP(INDD(R0, 0), IMM(T_CLOSURE));
-JUMP_NE(L_err_cannot_apply_non_clos);
-PUSH(INDD(R0, 1));
-CALLA(INDD(R0, 2));
-DROP(1); // env
-POP(R1); // num of args
-DROP(IMM(R1));
-PUSH(IMM(R0));
-PUSH(IMM(1)); // Num of params
-// (fvar not)
-MOV(R0, INDD(GLOBAL_TABLE,2));
-CMP(INDD(R0, 0), IMM(T_CLOSURE));
-JUMP_NE(L_err_cannot_apply_non_clos);
-PUSH(INDD(R0, 1));
-CALLA(INDD(R0, 2));
-DROP(1); // env
-POP(R1); // num of args
-DROP(IMM(R1));
-CMP(R0, IMM(SOB_FALSE));
-JUMP_EQ(L_if3_else_g61);
-// tc-applic
-// applic
-// (pvar second 1)
-MOV(R0, FPARG(3));
-PUSH(IMM(R0));
-// (pvar first 0)
-MOV(R0, FPARG(2));
-PUSH(IMM(R0));
-PUSH(IMM(2)); // Num of params
-// (fvar =)
-MOV(R0, INDD(GLOBAL_TABLE,23));
-CMP(INDD(R0, 0), IMM(T_CLOSURE));
-JUMP_NE(L_err_cannot_apply_non_clos);
-PUSH(INDD(R0, 1));
-CALLA(INDD(R0, 2));
-DROP(1); // env
-POP(R1); // num of args
-DROP(IMM(R1));
-PUSH(IMM(R0));
-PUSH(IMM(1)); // Num of params
-// (fvar not)
-MOV(R0, INDD(GLOBAL_TABLE,2));
-CMP(INDD(R0, 0), IMM(T_CLOSURE));
-JUMP_NE(L_err_cannot_apply_non_clos);
-PUSH(INDD(R0, 1)); // env
-PUSH(FPARG(-1)); // ret
-// Save old_fp
-MOV(R1, FP);
-DECR(R1);
-MOV(R1, STACK(R1));
-// Fix the stack
-MOV(R2, IMM(FP));
-SUB(R2, 4);
-SUB(R2, STACK(R2)); // R2 = bottom
-MOV(R3, IMM(FP));
-L_fix_stack_loop_g63:
-CMP(R3, IMM(SP));
-JUMP_GE(L_fix_stack_loop_end_g62);
-MOV(STACK(R2), STACK(R3));
-INCR(R2);
-INCR(R3);
-JUMP(L_fix_stack_loop_g63);
-L_fix_stack_loop_end_g62:
-MOV(SP, IMM(R2));
-MOV(FP, R1);
-JUMPA(INDD(R0, 2));
-JUMP(L_if3_exit_g60);
-L_if3_else_g61:
-// (const #f)
-MOV(R0, CONST_TABLE);
-ADD(R0, 2);
-
-L_if3_exit_g60:
+DECR(R5);
+JUMP(LT_LOOP);
+LT_TRUE:
+MOV(R0, IMM(SOB_TRUE));
+JUMP(LT_EXIT);
+LT_FALSE:
+MOV(R0, IMM(SOB_FALSE));
+LT_EXIT:
 POP(FP);
 RETURN;
-
-L_clos_exit_g59:
-CMP(INDD(R0, 0), IMM(T_CLOSURE));
-JUMP_NE(L_err_cannot_apply_non_clos);
-PUSH(INDD(R0, 1)); // env
-PUSH(FPARG(-1)); // ret
-// Save old_fp
-MOV(R1, FP);
-DECR(R1);
-MOV(R1, STACK(R1));
-// Fix the stack
-MOV(R2, IMM(FP));
-SUB(R2, 4);
-SUB(R2, STACK(R2)); // R2 = bottom
-MOV(R3, IMM(FP));
-L_fix_stack_loop_g52:
-CMP(R3, IMM(SP));
-JUMP_GE(L_fix_stack_loop_end_g51);
-MOV(STACK(R2), STACK(R3));
-INCR(R2);
-INCR(R3);
-JUMP(L_fix_stack_loop_g52);
-L_fix_stack_loop_end_g51:
-MOV(SP, IMM(R2));
-MOV(FP, R1);
-JUMPA(INDD(R0, 2));
-
-L_if3_exit_g49:
-POP(FP);
-RETURN;
-L_make_closure_g65:
+L_make_closure_g42:
 // Create closure for L_LT
 PUSH(LABEL(L_LT));
 PUSH(IMM(E_LT));
 CALL(MAKE_SOB_CLOSURE);
 DROP(2);
 MOV(INDD(GLOBAL_TABLE, 25), IMM(R0));
-JUMP(L_make_closure_g74);
+JUMP(L_make_closure_g47);
 L_map:
 PUSH(FP);
 MOV(FP, SP);
@@ -1321,41 +1016,12 @@ DROP(1); // env
 POP(R1); // num of args
 DROP(IMM(R1));
 CMP(R0, IMM(SOB_FALSE));
-JUMP_EQ(L_if3_else_g67);
+JUMP_EQ(L_if3_else_g44);
 // (const ())
 MOV(R0, CONST_TABLE);
 ADD(R0, 1);
-JUMP(L_if3_exit_g66);
-L_if3_else_g67:
-// if3
-// applic
-// applic
-// (pvar lst 1)
-MOV(R0, FPARG(3));
-PUSH(IMM(R0));
-PUSH(IMM(1)); // Num of params
-// (fvar car)
-MOV(R0, INDD(GLOBAL_TABLE,3));
-CMP(INDD(R0, 0), IMM(T_CLOSURE));
-JUMP_NE(L_err_cannot_apply_non_clos);
-PUSH(INDD(R0, 1));
-CALLA(INDD(R0, 2));
-DROP(1); // env
-POP(R1); // num of args
-DROP(IMM(R1));
-PUSH(IMM(R0));
-PUSH(IMM(1)); // Num of params
-// (fvar list?)
-MOV(R0, INDD(GLOBAL_TABLE,16));
-CMP(INDD(R0, 0), IMM(T_CLOSURE));
-JUMP_NE(L_err_cannot_apply_non_clos);
-PUSH(INDD(R0, 1));
-CALLA(INDD(R0, 2));
-DROP(1); // env
-POP(R1); // num of args
-DROP(IMM(R1));
-CMP(R0, IMM(SOB_FALSE));
-JUMP_EQ(L_if3_else_g69);
+JUMP(L_if3_exit_g43);
+L_if3_else_g44:
 // tc-applic
 // applic
 // applic
@@ -1373,97 +1039,7 @@ DROP(1); // env
 POP(R1); // num of args
 DROP(IMM(R1));
 PUSH(IMM(R0));
-// (pvar fun 0)
-MOV(R0, FPARG(2));
-PUSH(IMM(R0));
-PUSH(IMM(2)); // Num of params
-// (fvar map)
-MOV(R0, INDD(GLOBAL_TABLE,26));
-CMP(INDD(R0, 0), IMM(T_CLOSURE));
-JUMP_NE(L_err_cannot_apply_non_clos);
-PUSH(INDD(R0, 1));
-CALLA(INDD(R0, 2));
-DROP(1); // env
-POP(R1); // num of args
-DROP(IMM(R1));
-PUSH(IMM(R0));
-// applic
-// applic
-// (pvar lst 1)
-MOV(R0, FPARG(3));
-PUSH(IMM(R0));
-PUSH(IMM(1)); // Num of params
-// (fvar car)
-MOV(R0, INDD(GLOBAL_TABLE,3));
-CMP(INDD(R0, 0), IMM(T_CLOSURE));
-JUMP_NE(L_err_cannot_apply_non_clos);
-PUSH(INDD(R0, 1));
-CALLA(INDD(R0, 2));
-DROP(1); // env
-POP(R1); // num of args
-DROP(IMM(R1));
-PUSH(IMM(R0));
-// (pvar fun 0)
-MOV(R0, FPARG(2));
-PUSH(IMM(R0));
-PUSH(IMM(2)); // Num of params
-// (fvar map)
-MOV(R0, INDD(GLOBAL_TABLE,26));
-CMP(INDD(R0, 0), IMM(T_CLOSURE));
-JUMP_NE(L_err_cannot_apply_non_clos);
-PUSH(INDD(R0, 1));
-CALLA(INDD(R0, 2));
-DROP(1); // env
-POP(R1); // num of args
-DROP(IMM(R1));
-PUSH(IMM(R0));
-PUSH(IMM(2)); // Num of params
-// (fvar cons)
-MOV(R0, INDD(GLOBAL_TABLE,5));
-CMP(INDD(R0, 0), IMM(T_CLOSURE));
-JUMP_NE(L_err_cannot_apply_non_clos);
-PUSH(INDD(R0, 1)); // env
-PUSH(FPARG(-1)); // ret
-// Save old_fp
-MOV(R1, FP);
-DECR(R1);
-MOV(R1, STACK(R1));
-// Fix the stack
-MOV(R2, IMM(FP));
-SUB(R2, 4);
-SUB(R2, STACK(R2)); // R2 = bottom
-MOV(R3, IMM(FP));
-L_fix_stack_loop_g73:
-CMP(R3, IMM(SP));
-JUMP_GE(L_fix_stack_loop_end_g72);
-MOV(STACK(R2), STACK(R3));
-INCR(R2);
-INCR(R3);
-JUMP(L_fix_stack_loop_g73);
-L_fix_stack_loop_end_g72:
-MOV(SP, IMM(R2));
-MOV(FP, R1);
-JUMPA(INDD(R0, 2));
-JUMP(L_if3_exit_g68);
-L_if3_else_g69:
-// tc-applic
-// applic
-// applic
-// (pvar lst 1)
-MOV(R0, FPARG(3));
-PUSH(IMM(R0));
-PUSH(IMM(1)); // Num of params
-// (fvar cdr)
-MOV(R0, INDD(GLOBAL_TABLE,4));
-CMP(INDD(R0, 0), IMM(T_CLOSURE));
-JUMP_NE(L_err_cannot_apply_non_clos);
-PUSH(INDD(R0, 1));
-CALLA(INDD(R0, 2));
-DROP(1); // env
-POP(R1); // num of args
-DROP(IMM(R1));
-PUSH(IMM(R0));
-// (pvar fun 0)
+// (pvar f 0)
 MOV(R0, FPARG(2));
 PUSH(IMM(R0));
 PUSH(IMM(2)); // Num of params
@@ -1494,7 +1070,7 @@ POP(R1); // num of args
 DROP(IMM(R1));
 PUSH(IMM(R0));
 PUSH(IMM(1)); // Num of params
-// (pvar fun 0)
+// (pvar f 0)
 MOV(R0, FPARG(2));
 CMP(INDD(R0, 0), IMM(T_CLOSURE));
 JUMP_NE(L_err_cannot_apply_non_clos);
@@ -1520,31 +1096,29 @@ MOV(R2, IMM(FP));
 SUB(R2, 4);
 SUB(R2, STACK(R2)); // R2 = bottom
 MOV(R3, IMM(FP));
-L_fix_stack_loop_g71:
+L_fix_stack_loop_g46:
 CMP(R3, IMM(SP));
-JUMP_GE(L_fix_stack_loop_end_g70);
+JUMP_GE(L_fix_stack_loop_end_g45);
 MOV(STACK(R2), STACK(R3));
 INCR(R2);
 INCR(R3);
-JUMP(L_fix_stack_loop_g71);
-L_fix_stack_loop_end_g70:
+JUMP(L_fix_stack_loop_g46);
+L_fix_stack_loop_end_g45:
 MOV(SP, IMM(R2));
 MOV(FP, R1);
 JUMPA(INDD(R0, 2));
 
-L_if3_exit_g68:
-
-L_if3_exit_g66:
+L_if3_exit_g43:
 POP(FP);
 RETURN;
-L_make_closure_g74:
+L_make_closure_g47:
 // Create closure for L_map
 PUSH(LABEL(L_map));
 PUSH(IMM(E_MAP));
 CALL(MAKE_SOB_CLOSURE);
 DROP(2);
 MOV(INDD(GLOBAL_TABLE, 26), IMM(R0));
-JUMP(L_make_closure_g82);
+JUMP(L_make_closure_g55);
 L_list:
 PUSH(FP);
 MOV(FP, SP);
@@ -1559,51 +1133,51 @@ MOV(R0, SOB_NIL); // Result of var list in R0
 MOV(R3, IMM(FP));
 SUB(R3, IMM(4));
 SUB(R3, FPARG(1)); // Save increasing stack pointer in R3
-L_var_list_loop_g81:
+L_var_list_loop_g54:
 CMP(R2, 0);
-JUMP_LE(L_var_list_loop_end_g80);
+JUMP_LE(L_var_list_loop_end_g53);
 PUSH(IMM(R0));
 PUSH(STACK(R3));
 CALL(MAKE_SOB_PAIR);
 DROP(2);
 INCR(R3);
 DECR(R2);
-JUMP(L_var_list_loop_g81);
-L_var_list_loop_end_g80:
+JUMP(L_var_list_loop_g54);
+L_var_list_loop_end_g53:
 // Fix the stack
 CMP(R6, 0);
-JUMP_EQ(L_fix_stack_empty_var_list_g77);
+JUMP_EQ(L_fix_stack_empty_var_list_g50);
 MOV(R1, IMM(FP));
 SUB(R1, IMM(3));
 SUB(R1, FPARG(1)); // R1 = bottom
 MOV(R2, IMM(FP));
 SUB(R2, IMM(4)); // R2 = bottom of non-optional params
-L_stack_loop_g79:
+L_stack_loop_g52:
 CMP(R2, IMM(FP));
-JUMP_GE(L_stack_fix_end_g78);
+JUMP_GE(L_stack_fix_end_g51);
 MOV(STACK(R1), STACK(R2));
 INCR(R1);
 INCR(R2);
-JUMP(L_stack_loop_g79);
-L_fix_stack_empty_var_list_g77:
+JUMP(L_stack_loop_g52);
+L_fix_stack_empty_var_list_g50:
 // Init R3 with the loop limit (position of first optional var in original stack)
 MOV(R3, IMM(FP));
 SUB(R3, IMM(4));
 MOV(R1, IMM(FP));
 INCR(R1);
 MOV(R2, IMM(FP));
-L_fix_stack_empty_loop_g76:
+L_fix_stack_empty_loop_g49:
 CMP(R2, IMM(R3));
-JUMP_LE(L_stack_fix_empty_end_g75);
+JUMP_LE(L_stack_fix_empty_end_g48);
 MOV(STACK(R1), STACK(R2));
 DECR(R1);
 DECR(R2);
-JUMP(L_fix_stack_empty_loop_g76);
-L_stack_fix_empty_end_g75:
+JUMP(L_fix_stack_empty_loop_g49);
+L_stack_fix_empty_end_g48:
 // Fix R1 to point to the new FP since the code below relies on that
 MOV(R1, IMM(FP));
 INCR(R1);
-L_stack_fix_end_g78:
+L_stack_fix_end_g51:
 // Fix FP and SP
 MOV(FP, IMM(R1));
 MOV(SP, IMM(FP));
@@ -1618,14 +1192,14 @@ MOV(STACK(R1), IMM(R0)); // Put the var list
 MOV(R0, FPARG(2));
 POP(FP);
 RETURN;
-L_make_closure_g82:
+L_make_closure_g55:
 // Create closure for L_list
 PUSH(LABEL(L_list));
 PUSH(IMM(E_LIST));
 CALL(MAKE_SOB_CLOSURE);
 DROP(2);
 MOV(INDD(GLOBAL_TABLE, 27), IMM(R0));
-JUMP(L_make_closure_g105);
+JUMP(L_make_closure_g78);
 L_LENGTH:
 PUSH(FP);
 MOV(FP, SP);
@@ -1652,9 +1226,9 @@ MOV(R2, R0);
 // Copy old env
 XOR(R3, R3);
 MOV(R4, 1);
-L_clos_copy_env_begin_g86:
+L_clos_copy_env_begin_g59:
 CMP(R3, IMM(1));
-JUMP_GE(L_clos_copy_env_exit_g87);
+JUMP_GE(L_clos_copy_env_exit_g60);
 MOV(R5, R2);
 ADD(R5, R4);
 MOV(R6, R1);
@@ -1662,8 +1236,8 @@ ADD(R6, R3);
 MOV(IND(R5), IND(R6));
 INCR(R3);
 INCR(R4);
-JUMP(L_clos_copy_env_begin_g86);
-L_clos_copy_env_exit_g87:
+JUMP(L_clos_copy_env_begin_g59);
+L_clos_copy_env_exit_g60:
 
 // Allocate current env
 MOV(R3, FPARG(1)); // Number of last lambda params
@@ -1672,16 +1246,16 @@ CALL(MALLOC);
 DROP(1);
 MOV(IND(R2), R0);
 CMP(R3, IMM(0));
-JUMP_NE(L_clos_params_not_empty_g90);
+JUMP_NE(L_clos_params_not_empty_g63);
 MOV(IND(R2), IMM(E_EMPTY));
-L_clos_params_not_empty_g90:
+L_clos_params_not_empty_g63:
 
 // Copy last lambda params
 XOR(R4, R4);
 MOV(R5, 1);
-L_clos_copy_params_begin_g88:
+L_clos_copy_params_begin_g61:
 CMP(R4, IMM(R3));
-JUMP_GE(L_clos_copy_params_exit_g89);
+JUMP_GE(L_clos_copy_params_exit_g62);
 MOV(R6, IND(R2));
 ADD(R6, R4);
 MOV(R7, IMM(FP));
@@ -1690,8 +1264,8 @@ SUB(R7, IMM(R5));
 MOV(IND(R6), STACK(R7));
 INCR(R4);
 INCR(R5);
-JUMP(L_clos_copy_params_begin_g88);
-L_clos_copy_params_exit_g89:
+JUMP(L_clos_copy_params_begin_g61);
+L_clos_copy_params_exit_g62:
 
 // Allocate closure object
 PUSH(IMM(3));
@@ -1699,10 +1273,10 @@ CALL(MALLOC);
 DROP(1);
 MOV(INDD(R0, 0), T_CLOSURE);
 MOV(INDD(R0, 1), IMM(R2)); // env
-MOV(INDD(R0, 2), LABEL(L_clos_body_g85));
-JUMP(L_clos_exit_g91);
+MOV(INDD(R0, 2), LABEL(L_clos_body_g58));
+JUMP(L_clos_exit_g64);
 
-L_clos_body_g85:
+L_clos_body_g58:
 PUSH(FP);
 MOV(FP, SP);
 // Lambda-simple body
@@ -1737,9 +1311,9 @@ MOV(R2, R0);
 // Copy old env
 XOR(R3, R3);
 MOV(R4, 1);
-L_clos_copy_env_begin_g95:
+L_clos_copy_env_begin_g68:
 CMP(R3, IMM(2));
-JUMP_GE(L_clos_copy_env_exit_g96);
+JUMP_GE(L_clos_copy_env_exit_g69);
 MOV(R5, R2);
 ADD(R5, R4);
 MOV(R6, R1);
@@ -1747,8 +1321,8 @@ ADD(R6, R3);
 MOV(IND(R5), IND(R6));
 INCR(R3);
 INCR(R4);
-JUMP(L_clos_copy_env_begin_g95);
-L_clos_copy_env_exit_g96:
+JUMP(L_clos_copy_env_begin_g68);
+L_clos_copy_env_exit_g69:
 
 // Allocate current env
 MOV(R3, FPARG(1)); // Number of last lambda params
@@ -1757,16 +1331,16 @@ CALL(MALLOC);
 DROP(1);
 MOV(IND(R2), R0);
 CMP(R3, IMM(0));
-JUMP_NE(L_clos_params_not_empty_g99);
+JUMP_NE(L_clos_params_not_empty_g72);
 MOV(IND(R2), IMM(E_EMPTY));
-L_clos_params_not_empty_g99:
+L_clos_params_not_empty_g72:
 
 // Copy last lambda params
 XOR(R4, R4);
 MOV(R5, 1);
-L_clos_copy_params_begin_g97:
+L_clos_copy_params_begin_g70:
 CMP(R4, IMM(R3));
-JUMP_GE(L_clos_copy_params_exit_g98);
+JUMP_GE(L_clos_copy_params_exit_g71);
 MOV(R6, IND(R2));
 ADD(R6, R4);
 MOV(R7, IMM(FP));
@@ -1775,8 +1349,8 @@ SUB(R7, IMM(R5));
 MOV(IND(R6), STACK(R7));
 INCR(R4);
 INCR(R5);
-JUMP(L_clos_copy_params_begin_g97);
-L_clos_copy_params_exit_g98:
+JUMP(L_clos_copy_params_begin_g70);
+L_clos_copy_params_exit_g71:
 
 // Allocate closure object
 PUSH(IMM(3));
@@ -1784,10 +1358,10 @@ CALL(MALLOC);
 DROP(1);
 MOV(INDD(R0, 0), T_CLOSURE);
 MOV(INDD(R0, 1), IMM(R2)); // env
-MOV(INDD(R0, 2), LABEL(L_clos_body_g94));
-JUMP(L_clos_exit_g100);
+MOV(INDD(R0, 2), LABEL(L_clos_body_g67));
+JUMP(L_clos_exit_g73);
 
-L_clos_body_g94:
+L_clos_body_g67:
 PUSH(FP);
 MOV(FP, SP);
 // Lambda-simple body
@@ -1810,11 +1384,11 @@ DROP(1); // env
 POP(R1); // num of args
 DROP(IMM(R1));
 CMP(R0, IMM(SOB_FALSE));
-JUMP_EQ(L_if3_else_g102);
+JUMP_EQ(L_if3_else_g75);
 // (pvar counter 1)
 MOV(R0, FPARG(3));
-JUMP(L_if3_exit_g101);
-L_if3_else_g102:
+JUMP(L_if3_exit_g74);
+L_if3_else_g75:
 // tc-applic
 // applic
 // (const 1)
@@ -1870,23 +1444,23 @@ MOV(R2, IMM(FP));
 SUB(R2, 4);
 SUB(R2, STACK(R2)); // R2 = bottom
 MOV(R3, IMM(FP));
-L_fix_stack_loop_g104:
+L_fix_stack_loop_g77:
 CMP(R3, IMM(SP));
-JUMP_GE(L_fix_stack_loop_end_g103);
+JUMP_GE(L_fix_stack_loop_end_g76);
 MOV(STACK(R2), STACK(R3));
 INCR(R2);
 INCR(R3);
-JUMP(L_fix_stack_loop_g104);
-L_fix_stack_loop_end_g103:
+JUMP(L_fix_stack_loop_g77);
+L_fix_stack_loop_end_g76:
 MOV(SP, IMM(R2));
 MOV(FP, R1);
 JUMPA(INDD(R0, 2));
 
-L_if3_exit_g101:
+L_if3_exit_g74:
 POP(FP);
 RETURN;
 
-L_clos_exit_g100:
+L_clos_exit_g73:
 POP(R1);
 MOV(INDD(R1, 1), IMM(R0));
 // tc-applic
@@ -1917,21 +1491,21 @@ MOV(R2, IMM(FP));
 SUB(R2, 4);
 SUB(R2, STACK(R2)); // R2 = bottom
 MOV(R3, IMM(FP));
-L_fix_stack_loop_g93:
+L_fix_stack_loop_g66:
 CMP(R3, IMM(SP));
-JUMP_GE(L_fix_stack_loop_end_g92);
+JUMP_GE(L_fix_stack_loop_end_g65);
 MOV(STACK(R2), STACK(R3));
 INCR(R2);
 INCR(R3);
-JUMP(L_fix_stack_loop_g93);
-L_fix_stack_loop_end_g92:
+JUMP(L_fix_stack_loop_g66);
+L_fix_stack_loop_end_g65:
 MOV(SP, IMM(R2));
 MOV(FP, R1);
 JUMPA(INDD(R0, 2));
 POP(FP);
 RETURN;
 
-L_clos_exit_g91:
+L_clos_exit_g64:
 CMP(INDD(R0, 0), IMM(T_CLOSURE));
 JUMP_NE(L_err_cannot_apply_non_clos);
 PUSH(INDD(R0, 1)); // env
@@ -1945,27 +1519,27 @@ MOV(R2, IMM(FP));
 SUB(R2, 4);
 SUB(R2, STACK(R2)); // R2 = bottom
 MOV(R3, IMM(FP));
-L_fix_stack_loop_g84:
+L_fix_stack_loop_g57:
 CMP(R3, IMM(SP));
-JUMP_GE(L_fix_stack_loop_end_g83);
+JUMP_GE(L_fix_stack_loop_end_g56);
 MOV(STACK(R2), STACK(R3));
 INCR(R2);
 INCR(R3);
-JUMP(L_fix_stack_loop_g84);
-L_fix_stack_loop_end_g83:
+JUMP(L_fix_stack_loop_g57);
+L_fix_stack_loop_end_g56:
 MOV(SP, IMM(R2));
 MOV(FP, R1);
 JUMPA(INDD(R0, 2));
 POP(FP);
 RETURN;
-L_make_closure_g105:
+L_make_closure_g78:
 // Create closure for L_LENGTH
 PUSH(LABEL(L_LENGTH));
 PUSH(IMM(E_LENGTH));
 CALL(MAKE_SOB_CLOSURE);
 DROP(2);
 MOV(INDD(GLOBAL_TABLE, 28), IMM(R0));
-JUMP(L_make_closure_g128);
+JUMP(L_make_closure_g101);
 L_REVERSE:
 PUSH(FP);
 MOV(FP, SP);
@@ -1992,9 +1566,9 @@ MOV(R2, R0);
 // Copy old env
 XOR(R3, R3);
 MOV(R4, 1);
-L_clos_copy_env_begin_g109:
+L_clos_copy_env_begin_g82:
 CMP(R3, IMM(1));
-JUMP_GE(L_clos_copy_env_exit_g110);
+JUMP_GE(L_clos_copy_env_exit_g83);
 MOV(R5, R2);
 ADD(R5, R4);
 MOV(R6, R1);
@@ -2002,8 +1576,8 @@ ADD(R6, R3);
 MOV(IND(R5), IND(R6));
 INCR(R3);
 INCR(R4);
-JUMP(L_clos_copy_env_begin_g109);
-L_clos_copy_env_exit_g110:
+JUMP(L_clos_copy_env_begin_g82);
+L_clos_copy_env_exit_g83:
 
 // Allocate current env
 MOV(R3, FPARG(1)); // Number of last lambda params
@@ -2012,16 +1586,16 @@ CALL(MALLOC);
 DROP(1);
 MOV(IND(R2), R0);
 CMP(R3, IMM(0));
-JUMP_NE(L_clos_params_not_empty_g113);
+JUMP_NE(L_clos_params_not_empty_g86);
 MOV(IND(R2), IMM(E_EMPTY));
-L_clos_params_not_empty_g113:
+L_clos_params_not_empty_g86:
 
 // Copy last lambda params
 XOR(R4, R4);
 MOV(R5, 1);
-L_clos_copy_params_begin_g111:
+L_clos_copy_params_begin_g84:
 CMP(R4, IMM(R3));
-JUMP_GE(L_clos_copy_params_exit_g112);
+JUMP_GE(L_clos_copy_params_exit_g85);
 MOV(R6, IND(R2));
 ADD(R6, R4);
 MOV(R7, IMM(FP));
@@ -2030,8 +1604,8 @@ SUB(R7, IMM(R5));
 MOV(IND(R6), STACK(R7));
 INCR(R4);
 INCR(R5);
-JUMP(L_clos_copy_params_begin_g111);
-L_clos_copy_params_exit_g112:
+JUMP(L_clos_copy_params_begin_g84);
+L_clos_copy_params_exit_g85:
 
 // Allocate closure object
 PUSH(IMM(3));
@@ -2039,10 +1613,10 @@ CALL(MALLOC);
 DROP(1);
 MOV(INDD(R0, 0), T_CLOSURE);
 MOV(INDD(R0, 1), IMM(R2)); // env
-MOV(INDD(R0, 2), LABEL(L_clos_body_g108));
-JUMP(L_clos_exit_g114);
+MOV(INDD(R0, 2), LABEL(L_clos_body_g81));
+JUMP(L_clos_exit_g87);
 
-L_clos_body_g108:
+L_clos_body_g81:
 PUSH(FP);
 MOV(FP, SP);
 // Lambda-simple body
@@ -2077,9 +1651,9 @@ MOV(R2, R0);
 // Copy old env
 XOR(R3, R3);
 MOV(R4, 1);
-L_clos_copy_env_begin_g118:
+L_clos_copy_env_begin_g91:
 CMP(R3, IMM(2));
-JUMP_GE(L_clos_copy_env_exit_g119);
+JUMP_GE(L_clos_copy_env_exit_g92);
 MOV(R5, R2);
 ADD(R5, R4);
 MOV(R6, R1);
@@ -2087,8 +1661,8 @@ ADD(R6, R3);
 MOV(IND(R5), IND(R6));
 INCR(R3);
 INCR(R4);
-JUMP(L_clos_copy_env_begin_g118);
-L_clos_copy_env_exit_g119:
+JUMP(L_clos_copy_env_begin_g91);
+L_clos_copy_env_exit_g92:
 
 // Allocate current env
 MOV(R3, FPARG(1)); // Number of last lambda params
@@ -2097,16 +1671,16 @@ CALL(MALLOC);
 DROP(1);
 MOV(IND(R2), R0);
 CMP(R3, IMM(0));
-JUMP_NE(L_clos_params_not_empty_g122);
+JUMP_NE(L_clos_params_not_empty_g95);
 MOV(IND(R2), IMM(E_EMPTY));
-L_clos_params_not_empty_g122:
+L_clos_params_not_empty_g95:
 
 // Copy last lambda params
 XOR(R4, R4);
 MOV(R5, 1);
-L_clos_copy_params_begin_g120:
+L_clos_copy_params_begin_g93:
 CMP(R4, IMM(R3));
-JUMP_GE(L_clos_copy_params_exit_g121);
+JUMP_GE(L_clos_copy_params_exit_g94);
 MOV(R6, IND(R2));
 ADD(R6, R4);
 MOV(R7, IMM(FP));
@@ -2115,8 +1689,8 @@ SUB(R7, IMM(R5));
 MOV(IND(R6), STACK(R7));
 INCR(R4);
 INCR(R5);
-JUMP(L_clos_copy_params_begin_g120);
-L_clos_copy_params_exit_g121:
+JUMP(L_clos_copy_params_begin_g93);
+L_clos_copy_params_exit_g94:
 
 // Allocate closure object
 PUSH(IMM(3));
@@ -2124,10 +1698,10 @@ CALL(MALLOC);
 DROP(1);
 MOV(INDD(R0, 0), T_CLOSURE);
 MOV(INDD(R0, 1), IMM(R2)); // env
-MOV(INDD(R0, 2), LABEL(L_clos_body_g117));
-JUMP(L_clos_exit_g123);
+MOV(INDD(R0, 2), LABEL(L_clos_body_g90));
+JUMP(L_clos_exit_g96);
 
-L_clos_body_g117:
+L_clos_body_g90:
 PUSH(FP);
 MOV(FP, SP);
 // Lambda-simple body
@@ -2150,11 +1724,11 @@ DROP(1); // env
 POP(R1); // num of args
 DROP(IMM(R1));
 CMP(R0, IMM(SOB_FALSE));
-JUMP_EQ(L_if3_else_g125);
+JUMP_EQ(L_if3_else_g98);
 // (pvar acc 1)
 MOV(R0, FPARG(3));
-JUMP(L_if3_exit_g124);
-L_if3_else_g125:
+JUMP(L_if3_exit_g97);
+L_if3_else_g98:
 // tc-applic
 // applic
 // (pvar acc 1)
@@ -2221,23 +1795,23 @@ MOV(R2, IMM(FP));
 SUB(R2, 4);
 SUB(R2, STACK(R2)); // R2 = bottom
 MOV(R3, IMM(FP));
-L_fix_stack_loop_g127:
+L_fix_stack_loop_g100:
 CMP(R3, IMM(SP));
-JUMP_GE(L_fix_stack_loop_end_g126);
+JUMP_GE(L_fix_stack_loop_end_g99);
 MOV(STACK(R2), STACK(R3));
 INCR(R2);
 INCR(R3);
-JUMP(L_fix_stack_loop_g127);
-L_fix_stack_loop_end_g126:
+JUMP(L_fix_stack_loop_g100);
+L_fix_stack_loop_end_g99:
 MOV(SP, IMM(R2));
 MOV(FP, R1);
 JUMPA(INDD(R0, 2));
 
-L_if3_exit_g124:
+L_if3_exit_g97:
 POP(FP);
 RETURN;
 
-L_clos_exit_g123:
+L_clos_exit_g96:
 POP(R1);
 MOV(INDD(R1, 1), IMM(R0));
 // tc-applic
@@ -2268,21 +1842,21 @@ MOV(R2, IMM(FP));
 SUB(R2, 4);
 SUB(R2, STACK(R2)); // R2 = bottom
 MOV(R3, IMM(FP));
-L_fix_stack_loop_g116:
+L_fix_stack_loop_g89:
 CMP(R3, IMM(SP));
-JUMP_GE(L_fix_stack_loop_end_g115);
+JUMP_GE(L_fix_stack_loop_end_g88);
 MOV(STACK(R2), STACK(R3));
 INCR(R2);
 INCR(R3);
-JUMP(L_fix_stack_loop_g116);
-L_fix_stack_loop_end_g115:
+JUMP(L_fix_stack_loop_g89);
+L_fix_stack_loop_end_g88:
 MOV(SP, IMM(R2));
 MOV(FP, R1);
 JUMPA(INDD(R0, 2));
 POP(FP);
 RETURN;
 
-L_clos_exit_g114:
+L_clos_exit_g87:
 CMP(INDD(R0, 0), IMM(T_CLOSURE));
 JUMP_NE(L_err_cannot_apply_non_clos);
 PUSH(INDD(R0, 1)); // env
@@ -2296,27 +1870,27 @@ MOV(R2, IMM(FP));
 SUB(R2, 4);
 SUB(R2, STACK(R2)); // R2 = bottom
 MOV(R3, IMM(FP));
-L_fix_stack_loop_g107:
+L_fix_stack_loop_g80:
 CMP(R3, IMM(SP));
-JUMP_GE(L_fix_stack_loop_end_g106);
+JUMP_GE(L_fix_stack_loop_end_g79);
 MOV(STACK(R2), STACK(R3));
 INCR(R2);
 INCR(R3);
-JUMP(L_fix_stack_loop_g107);
-L_fix_stack_loop_end_g106:
+JUMP(L_fix_stack_loop_g80);
+L_fix_stack_loop_end_g79:
 MOV(SP, IMM(R2));
 MOV(FP, R1);
 JUMPA(INDD(R0, 2));
 POP(FP);
 RETURN;
-L_make_closure_g128:
+L_make_closure_g101:
 // Create closure for L_REVERSE
 PUSH(LABEL(L_REVERSE));
 PUSH(IMM(E_PRIVATE));
 CALL(MAKE_SOB_CLOSURE);
 DROP(2);
 MOV(INDD(GLOBAL_TABLE, 29), IMM(R0));
-JUMP(L_make_closure_g129);
+JUMP(L_make_closure_g102);
 L_apply:
 PUSH(FP);
 MOV(FP, SP);
@@ -2373,14 +1947,14 @@ POP(R1); // num of args
 DROP(IMM(R1));
 POP(FP);
 RETURN;
-L_make_closure_g129:
+L_make_closure_g102:
 // Create closure for L_apply
 PUSH(LABEL(L_apply));
 PUSH(IMM(E_APPLY));
 CALL(MAKE_SOB_CLOSURE);
 DROP(2);
 MOV(INDD(GLOBAL_TABLE, 30), IMM(R0));
-JUMP(L_make_closure_g134);
+JUMP(L_make_closure_g107);
 L_APPEND_BINARY:
 PUSH(FP);
 MOV(FP, SP);
@@ -2406,11 +1980,11 @@ DROP(1); // env
 POP(R1); // num of args
 DROP(IMM(R1));
 CMP(R0, IMM(SOB_FALSE));
-JUMP_EQ(L_if3_else_g131);
+JUMP_EQ(L_if3_else_g104);
 // (pvar m 1)
 MOV(R0, FPARG(3));
-JUMP(L_if3_exit_g130);
-L_if3_else_g131:
+JUMP(L_if3_exit_g103);
+L_if3_else_g104:
 // tc-applic
 // applic
 // (pvar m 1)
@@ -2473,29 +2047,29 @@ MOV(R2, IMM(FP));
 SUB(R2, 4);
 SUB(R2, STACK(R2)); // R2 = bottom
 MOV(R3, IMM(FP));
-L_fix_stack_loop_g133:
+L_fix_stack_loop_g106:
 CMP(R3, IMM(SP));
-JUMP_GE(L_fix_stack_loop_end_g132);
+JUMP_GE(L_fix_stack_loop_end_g105);
 MOV(STACK(R2), STACK(R3));
 INCR(R2);
 INCR(R3);
-JUMP(L_fix_stack_loop_g133);
-L_fix_stack_loop_end_g132:
+JUMP(L_fix_stack_loop_g106);
+L_fix_stack_loop_end_g105:
 MOV(SP, IMM(R2));
 MOV(FP, R1);
 JUMPA(INDD(R0, 2));
 
-L_if3_exit_g130:
+L_if3_exit_g103:
 POP(FP);
 RETURN;
-L_make_closure_g134:
+L_make_closure_g107:
 // Create closure for L_APPEND_BINARY
 PUSH(LABEL(L_APPEND_BINARY));
 PUSH(IMM(E_PRIVATE));
 CALL(MAKE_SOB_CLOSURE);
 DROP(2);
 MOV(INDD(GLOBAL_TABLE, 31), IMM(R0));
-JUMP(L_make_closure_g160);
+JUMP(L_make_closure_g133);
 L_APPEND:
 PUSH(FP);
 MOV(FP, SP);
@@ -2510,51 +2084,51 @@ MOV(R0, SOB_NIL); // Result of var list in R0
 MOV(R3, IMM(FP));
 SUB(R3, IMM(4));
 SUB(R3, FPARG(1)); // Save increasing stack pointer in R3
-L_var_list_loop_g141:
+L_var_list_loop_g114:
 CMP(R2, 0);
-JUMP_LE(L_var_list_loop_end_g140);
+JUMP_LE(L_var_list_loop_end_g113);
 PUSH(IMM(R0));
 PUSH(STACK(R3));
 CALL(MAKE_SOB_PAIR);
 DROP(2);
 INCR(R3);
 DECR(R2);
-JUMP(L_var_list_loop_g141);
-L_var_list_loop_end_g140:
+JUMP(L_var_list_loop_g114);
+L_var_list_loop_end_g113:
 // Fix the stack
 CMP(R6, 0);
-JUMP_EQ(L_fix_stack_empty_var_list_g137);
+JUMP_EQ(L_fix_stack_empty_var_list_g110);
 MOV(R1, IMM(FP));
 SUB(R1, IMM(3));
 SUB(R1, FPARG(1)); // R1 = bottom
 MOV(R2, IMM(FP));
 SUB(R2, IMM(4)); // R2 = bottom of non-optional params
-L_stack_loop_g139:
+L_stack_loop_g112:
 CMP(R2, IMM(FP));
-JUMP_GE(L_stack_fix_end_g138);
+JUMP_GE(L_stack_fix_end_g111);
 MOV(STACK(R1), STACK(R2));
 INCR(R1);
 INCR(R2);
-JUMP(L_stack_loop_g139);
-L_fix_stack_empty_var_list_g137:
+JUMP(L_stack_loop_g112);
+L_fix_stack_empty_var_list_g110:
 // Init R3 with the loop limit (position of first optional var in original stack)
 MOV(R3, IMM(FP));
 SUB(R3, IMM(4));
 MOV(R1, IMM(FP));
 INCR(R1);
 MOV(R2, IMM(FP));
-L_fix_stack_empty_loop_g136:
+L_fix_stack_empty_loop_g109:
 CMP(R2, IMM(R3));
-JUMP_LE(L_stack_fix_empty_end_g135);
+JUMP_LE(L_stack_fix_empty_end_g108);
 MOV(STACK(R1), STACK(R2));
 DECR(R1);
 DECR(R2);
-JUMP(L_fix_stack_empty_loop_g136);
-L_stack_fix_empty_end_g135:
+JUMP(L_fix_stack_empty_loop_g109);
+L_stack_fix_empty_end_g108:
 // Fix R1 to point to the new FP since the code below relies on that
 MOV(R1, IMM(FP));
 INCR(R1);
-L_stack_fix_end_g138:
+L_stack_fix_end_g111:
 // Fix FP and SP
 MOV(FP, IMM(R1));
 MOV(SP, IMM(FP));
@@ -2582,7 +2156,7 @@ DROP(1); // env
 POP(R1); // num of args
 DROP(IMM(R1));
 CMP(R0, IMM(SOB_FALSE));
-JUMP_NE(L_or_exit_g159);
+JUMP_NE(L_or_exit_g132);
 // applic
 // applic
 // (pvar v 0)
@@ -2610,15 +2184,15 @@ DROP(1); // env
 POP(R1); // num of args
 DROP(IMM(R1));
 CMP(R0, IMM(SOB_FALSE));
-JUMP_NE(L_or_exit_g159);
+JUMP_NE(L_or_exit_g132);
 
-L_or_exit_g159:
+L_or_exit_g132:
 CMP(R0, IMM(SOB_FALSE));
-JUMP_EQ(L_if3_else_g143);
+JUMP_EQ(L_if3_else_g116);
 // (pvar v 0)
 MOV(R0, FPARG(2));
-JUMP(L_if3_exit_g142);
-L_if3_else_g143:
+JUMP(L_if3_exit_g115);
+L_if3_else_g116:
 // if3
 // applic
 // (const 2)
@@ -2651,7 +2225,7 @@ DROP(1); // env
 POP(R1); // num of args
 DROP(IMM(R1));
 CMP(R0, IMM(SOB_FALSE));
-JUMP_EQ(L_if3_else_g145);
+JUMP_EQ(L_if3_else_g118);
 // tc-applic
 // applic
 // (pvar v 0)
@@ -2699,19 +2273,19 @@ MOV(R2, IMM(FP));
 SUB(R2, 4);
 SUB(R2, STACK(R2)); // R2 = bottom
 MOV(R3, IMM(FP));
-L_fix_stack_loop_g158:
+L_fix_stack_loop_g131:
 CMP(R3, IMM(SP));
-JUMP_GE(L_fix_stack_loop_end_g157);
+JUMP_GE(L_fix_stack_loop_end_g130);
 MOV(STACK(R2), STACK(R3));
 INCR(R2);
 INCR(R3);
-JUMP(L_fix_stack_loop_g158);
-L_fix_stack_loop_end_g157:
+JUMP(L_fix_stack_loop_g131);
+L_fix_stack_loop_end_g130:
 MOV(SP, IMM(R2));
 MOV(FP, R1);
 JUMPA(INDD(R0, 2));
-JUMP(L_if3_exit_g144);
-L_if3_else_g145:
+JUMP(L_if3_exit_g117);
+L_if3_else_g118:
 // tc-applic
 // applic
 // applic
@@ -2794,9 +2368,9 @@ MOV(R2, R0);
 // Copy old env
 XOR(R3, R3);
 MOV(R4, 1);
-L_clos_copy_env_begin_g149:
+L_clos_copy_env_begin_g122:
 CMP(R3, IMM(1));
-JUMP_GE(L_clos_copy_env_exit_g150);
+JUMP_GE(L_clos_copy_env_exit_g123);
 MOV(R5, R2);
 ADD(R5, R4);
 MOV(R6, R1);
@@ -2804,8 +2378,8 @@ ADD(R6, R3);
 MOV(IND(R5), IND(R6));
 INCR(R3);
 INCR(R4);
-JUMP(L_clos_copy_env_begin_g149);
-L_clos_copy_env_exit_g150:
+JUMP(L_clos_copy_env_begin_g122);
+L_clos_copy_env_exit_g123:
 
 // Allocate current env
 MOV(R3, FPARG(1)); // Number of last lambda params
@@ -2814,16 +2388,16 @@ CALL(MALLOC);
 DROP(1);
 MOV(IND(R2), R0);
 CMP(R3, IMM(0));
-JUMP_NE(L_clos_params_not_empty_g153);
+JUMP_NE(L_clos_params_not_empty_g126);
 MOV(IND(R2), IMM(E_EMPTY));
-L_clos_params_not_empty_g153:
+L_clos_params_not_empty_g126:
 
 // Copy last lambda params
 XOR(R4, R4);
 MOV(R5, 1);
-L_clos_copy_params_begin_g151:
+L_clos_copy_params_begin_g124:
 CMP(R4, IMM(R3));
-JUMP_GE(L_clos_copy_params_exit_g152);
+JUMP_GE(L_clos_copy_params_exit_g125);
 MOV(R6, IND(R2));
 ADD(R6, R4);
 MOV(R7, IMM(FP));
@@ -2832,8 +2406,8 @@ SUB(R7, IMM(R5));
 MOV(IND(R6), STACK(R7));
 INCR(R4);
 INCR(R5);
-JUMP(L_clos_copy_params_begin_g151);
-L_clos_copy_params_exit_g152:
+JUMP(L_clos_copy_params_begin_g124);
+L_clos_copy_params_exit_g125:
 
 // Allocate closure object
 PUSH(IMM(3));
@@ -2841,10 +2415,10 @@ CALL(MALLOC);
 DROP(1);
 MOV(INDD(R0, 0), T_CLOSURE);
 MOV(INDD(R0, 1), IMM(R2)); // env
-MOV(INDD(R0, 2), LABEL(L_clos_body_g148));
-JUMP(L_clos_exit_g154);
+MOV(INDD(R0, 2), LABEL(L_clos_body_g121));
+JUMP(L_clos_exit_g127);
 
-L_clos_body_g148:
+L_clos_body_g121:
 PUSH(FP);
 MOV(FP, SP);
 // Lambda-simple body
@@ -2889,21 +2463,21 @@ MOV(R2, IMM(FP));
 SUB(R2, 4);
 SUB(R2, STACK(R2)); // R2 = bottom
 MOV(R3, IMM(FP));
-L_fix_stack_loop_g156:
+L_fix_stack_loop_g129:
 CMP(R3, IMM(SP));
-JUMP_GE(L_fix_stack_loop_end_g155);
+JUMP_GE(L_fix_stack_loop_end_g128);
 MOV(STACK(R2), STACK(R3));
 INCR(R2);
 INCR(R3);
-JUMP(L_fix_stack_loop_g156);
-L_fix_stack_loop_end_g155:
+JUMP(L_fix_stack_loop_g129);
+L_fix_stack_loop_end_g128:
 MOV(SP, IMM(R2));
 MOV(FP, R1);
 JUMPA(INDD(R0, 2));
 POP(FP);
 RETURN;
 
-L_clos_exit_g154:
+L_clos_exit_g127:
 CMP(INDD(R0, 0), IMM(T_CLOSURE));
 JUMP_NE(L_err_cannot_apply_non_clos);
 PUSH(INDD(R0, 1)); // env
@@ -2917,31 +2491,31 @@ MOV(R2, IMM(FP));
 SUB(R2, 4);
 SUB(R2, STACK(R2)); // R2 = bottom
 MOV(R3, IMM(FP));
-L_fix_stack_loop_g147:
+L_fix_stack_loop_g120:
 CMP(R3, IMM(SP));
-JUMP_GE(L_fix_stack_loop_end_g146);
+JUMP_GE(L_fix_stack_loop_end_g119);
 MOV(STACK(R2), STACK(R3));
 INCR(R2);
 INCR(R3);
-JUMP(L_fix_stack_loop_g147);
-L_fix_stack_loop_end_g146:
+JUMP(L_fix_stack_loop_g120);
+L_fix_stack_loop_end_g119:
 MOV(SP, IMM(R2));
 MOV(FP, R1);
 JUMPA(INDD(R0, 2));
 
-L_if3_exit_g144:
+L_if3_exit_g117:
 
-L_if3_exit_g142:
+L_if3_exit_g115:
 POP(FP);
 RETURN;
-L_make_closure_g160:
+L_make_closure_g133:
 // Create closure for L_APPEND
 PUSH(LABEL(L_APPEND));
 PUSH(IMM(E_APPEND));
 CALL(MAKE_SOB_CLOSURE);
 DROP(2);
 MOV(INDD(GLOBAL_TABLE, 32), IMM(R0));
-JUMP(L_make_closure_g161);
+JUMP(L_make_closure_g134);
 L_MAKE_STRING:
 PUSH(FP);
 MOV(FP, SP);
@@ -2973,14 +2547,14 @@ DROP(IMM(R6));
 DROP(1);
 POP(FP);
 RETURN;
-L_make_closure_g161:
+L_make_closure_g134:
 // Create closure for L_MAKE_STRING
 PUSH(LABEL(L_MAKE_STRING));
 PUSH(IMM(E_PRIVATE));
 CALL(MAKE_SOB_CLOSURE);
 DROP(2);
 MOV(INDD(GLOBAL_TABLE, 33), IMM(R0));
-JUMP(L_make_closure_g162);
+JUMP(L_make_closure_g135);
 L_STRING_LENGTH:
 PUSH(FP);
 MOV(FP, SP);
@@ -2993,14 +2567,14 @@ CALL(MAKE_SOB_INTEGER);
 DROP(2);
 POP(FP);
 RETURN;
-L_make_closure_g162:
+L_make_closure_g135:
 // Create closure for L_STRING_LENGTH
 PUSH(LABEL(L_STRING_LENGTH));
 PUSH(IMM(E_PRIVATE));
 CALL(MAKE_SOB_CLOSURE);
 DROP(2);
 MOV(INDD(GLOBAL_TABLE, 34), IMM(R0));
-JUMP(L_make_closure_g163);
+JUMP(L_make_closure_g136);
 L_STRING_REF:
 PUSH(FP);
 MOV(FP, SP);
@@ -3018,14 +2592,14 @@ PUSH(IND(R0));CALL(MAKE_SOB_CHAR);
 DROP(1);
 POP(FP);
 RETURN;
-L_make_closure_g163:
+L_make_closure_g136:
 // Create closure for L_STRING_REF
 PUSH(LABEL(L_STRING_REF));
 PUSH(IMM(E_PRIVATE));
 CALL(MAKE_SOB_CLOSURE);
 DROP(2);
 MOV(INDD(GLOBAL_TABLE, 35), IMM(R0));
-JUMP(L_make_closure_g164);
+JUMP(L_make_closure_g137);
 L_STRING_SET:
 PUSH(FP);
 MOV(FP, SP);
@@ -3046,14 +2620,14 @@ MOV(IND(R0), INDD(R2, 1));
 MOV(R0, IMM(SOB_VOID));
 POP(FP);
 RETURN;
-L_make_closure_g164:
+L_make_closure_g137:
 // Create closure for L_STRING_SET
 PUSH(LABEL(L_STRING_SET));
 PUSH(IMM(E_PRIVATE));
 CALL(MAKE_SOB_CLOSURE);
 DROP(2);
 MOV(INDD(GLOBAL_TABLE, 36), IMM(R0));
-JUMP(L_make_closure_g165);
+JUMP(L_make_closure_g138);
 L_VECTOR:
 PUSH(FP);
 MOV(FP, SP);
@@ -3074,14 +2648,14 @@ DROP(1);
 DROP(FPARG(1));
 POP(FP);
 RETURN;
-L_make_closure_g165:
+L_make_closure_g138:
 // Create closure for L_VECTOR
 PUSH(LABEL(L_VECTOR));
 PUSH(IMM(E_PRIVATE));
 CALL(MAKE_SOB_CLOSURE);
 DROP(2);
 MOV(INDD(GLOBAL_TABLE, 37), IMM(R0));
-JUMP(L_make_closure_g166);
+JUMP(L_make_closure_g139);
 L_MAKE_VECTOR:
 PUSH(FP);
 MOV(FP, SP);
@@ -3112,14 +2686,14 @@ DROP(IMM(R6));
 DROP(1);
 POP(FP);
 RETURN;
-L_make_closure_g166:
+L_make_closure_g139:
 // Create closure for L_MAKE_VECTOR
 PUSH(LABEL(L_MAKE_VECTOR));
 PUSH(IMM(E_PRIVATE));
 CALL(MAKE_SOB_CLOSURE);
 DROP(2);
 MOV(INDD(GLOBAL_TABLE, 38), IMM(R0));
-JUMP(L_make_closure_g167);
+JUMP(L_make_closure_g140);
 L_VECTOR_LENGTH:
 PUSH(FP);
 MOV(FP, SP);
@@ -3132,14 +2706,14 @@ CALL(MAKE_SOB_INTEGER);
 DROP(2);
 POP(FP);
 RETURN;
-L_make_closure_g167:
+L_make_closure_g140:
 // Create closure for L_VECTOR_LENGTH
 PUSH(LABEL(L_VECTOR_LENGTH));
 PUSH(IMM(E_PRIVATE));
 CALL(MAKE_SOB_CLOSURE);
 DROP(2);
 MOV(INDD(GLOBAL_TABLE, 39), IMM(R0));
-JUMP(L_make_closure_g168);
+JUMP(L_make_closure_g141);
 L_VECTOR_REF:
 PUSH(FP);
 MOV(FP, SP);
@@ -3156,14 +2730,14 @@ ADD(R0, INDD(R1, 1));
 MOV(R0, IND(R0));
 POP(FP);
 RETURN;
-L_make_closure_g168:
+L_make_closure_g141:
 // Create closure for L_VECTOR_REF
 PUSH(LABEL(L_VECTOR_REF));
 PUSH(IMM(E_PRIVATE));
 CALL(MAKE_SOB_CLOSURE);
 DROP(2);
 MOV(INDD(GLOBAL_TABLE, 40), IMM(R0));
-JUMP(L_make_closure_g169);
+JUMP(L_make_closure_g142);
 L_VECTOR_SET:
 PUSH(FP);
 MOV(FP, SP);
@@ -3181,14 +2755,14 @@ MOV(IND(R0), FPARG(4));
 MOV(R0, IMM(SOB_VOID));
 POP(FP);
 RETURN;
-L_make_closure_g169:
+L_make_closure_g142:
 // Create closure for L_VECTOR_SET
 PUSH(LABEL(L_VECTOR_SET));
 PUSH(IMM(E_PRIVATE));
 CALL(MAKE_SOB_CLOSURE);
 DROP(2);
 MOV(INDD(GLOBAL_TABLE, 41), IMM(R0));
-JUMP(L_make_closure_g170);
+JUMP(L_make_closure_g143);
 L_MULT:
 PUSH(FP);
 MOV(FP, SP);
@@ -3216,14 +2790,14 @@ CALL(MAKE_SOB_INTEGER);
 DROP(2);
 POP(FP);
 RETURN;
-L_make_closure_g170:
+L_make_closure_g143:
 // Create closure for L_MULT
 PUSH(LABEL(L_MULT));
 PUSH(IMM(E_MULT));
 CALL(MAKE_SOB_CLOSURE);
 DROP(2);
 MOV(INDD(GLOBAL_TABLE, 42), IMM(R0));
-JUMP(L_make_closure_g171);
+JUMP(L_make_closure_g144);
 L_DIV:
 PUSH(FP);
 MOV(FP, SP);
@@ -3232,9 +2806,12 @@ CMP(R3, IMM(0));
 JUMP_EQ(L_err_lambda_args_count);
 CMP(R3, IMM(1));
 JUMP_NE(DIV_CONTINUE);
+// Switch denominator and numerator
 MOV(R0, FPARG(2));
-MOV(R1, INDD(R0, 1));
-MOV(R0, INDD(R0, 2));
+PUSH(INDD(R0, 2));
+PUSH(INDD(R0, 1));
+CALL(REDUCT);
+DROP(2);
 JUMP(DIV_EXIT);
 DIV_CONTINUE:
 MOV(R0, FPARG(2));
@@ -3244,8 +2821,6 @@ MOV(R2, IMM(FP));
 SUB(R2, IMM(6));
 DECR(R3);
 DIV_LOOP:
-CMP(R3, IMM(0));
-JUMP_LE(DIV_EXIT);
 MOV(R4, STACK(R2));
 PUSH(IMM(R4));
 PUSH(IMM(R1));
@@ -3254,6 +2829,8 @@ CALL(DIVI);
 DROP(3);
 DECR(R2);
 DECR(R3);
+CMP(R3, IMM(0));
+JUMP_LE(DIV_EXIT);
 JUMP(DIV_LOOP);
 DIV_EXIT:
 PUSH(IMM(R0));
@@ -3262,14 +2839,14 @@ CALL(MAKE_SOB_INTEGER);
 DROP(2);
 POP(FP);
 RETURN;
-L_make_closure_g171:
+L_make_closure_g144:
 // Create closure for L_DIV
 PUSH(LABEL(L_DIV));
 PUSH(IMM(E_DIV));
 CALL(MAKE_SOB_CLOSURE);
 DROP(2);
 MOV(INDD(GLOBAL_TABLE, 43), IMM(R0));
-JUMP(L_make_closure_g172);
+JUMP(L_make_closure_g145);
 L_DENOMINATOR:
 PUSH(FP);
 MOV(FP, SP);
@@ -3278,17 +2855,20 @@ JUMP_NE(L_err_lambda_args_count);
 MOV(R0, FPARG(2));
 CMP(IND(R0), T_INTEGER);
 JUMP_NE(L_err_invalid_param);
-MOV(R0, INDD(R0, 2));
+PUSH(INDD(R0, 2));
+PUSH(IMM(1));
+CALL(MAKE_SOB_INTEGER);
+DROP(2);
 POP(FP);
 RETURN;
-L_make_closure_g172:
+L_make_closure_g145:
 // Create closure for L_DENOMINATOR
 PUSH(LABEL(L_DENOMINATOR));
 PUSH(IMM(E_PRIVATE));
 CALL(MAKE_SOB_CLOSURE);
 DROP(2);
 MOV(INDD(GLOBAL_TABLE, 44), IMM(R0));
-JUMP(L_make_closure_g173);
+JUMP(L_make_closure_g146);
 L_NUMERATOR:
 PUSH(FP);
 MOV(FP, SP);
@@ -3297,17 +2877,20 @@ JUMP_NE(L_err_lambda_args_count);
 MOV(R0, FPARG(2));
 CMP(IND(R0), T_INTEGER);
 JUMP_NE(L_err_invalid_param);
-MOV(R0, INDD(R0, 1));
+PUSH(INDD(R0, 1));
+PUSH(IMM(1));
+CALL(MAKE_SOB_INTEGER);
+DROP(2);
 POP(FP);
 RETURN;
-L_make_closure_g173:
+L_make_closure_g146:
 // Create closure for L_NUMERATOR
 PUSH(LABEL(L_NUMERATOR));
 PUSH(IMM(E_PRIVATE));
 CALL(MAKE_SOB_CLOSURE);
 DROP(2);
 MOV(INDD(GLOBAL_TABLE, 45), IMM(R0));
-JUMP(L_make_closure_g174);
+JUMP(L_make_closure_g147);
 L_REMAINDER:
 PUSH(FP);
 MOV(FP, SP);
@@ -3327,14 +2910,14 @@ CALL(MAKE_SOB_INTEGER);
 DROP(2);
 POP(FP);
 RETURN;
-L_make_closure_g174:
+L_make_closure_g147:
 // Create closure for L_REMAINDER
 PUSH(LABEL(L_REMAINDER));
 PUSH(IMM(E_PRIVATE));
 CALL(MAKE_SOB_CLOSURE);
 DROP(2);
 MOV(INDD(GLOBAL_TABLE, 46), IMM(R0));
-JUMP(L_make_closure_g175);
+JUMP(L_make_closure_g148);
 L_pnumber:
 PUSH(FP);
 MOV(FP, SP);
@@ -3348,14 +2931,14 @@ CALL(L_int_to_bool);
 DROP(1);
 POP(FP);
 RETURN;
-L_make_closure_g175:
+L_make_closure_g148:
 // Create closure for L_pnumber
 PUSH(LABEL(L_pnumber));
 PUSH(IMM(E_PRIVATE));
 CALL(MAKE_SOB_CLOSURE);
 DROP(2);
 MOV(INDD(GLOBAL_TABLE, 47), IMM(R0));
-JUMP(L_make_closure_g178);
+JUMP(L_make_closure_g151);
 L_prational:
 PUSH(FP);
 MOV(FP, SP);
@@ -3385,27 +2968,27 @@ MOV(R2, IMM(FP));
 SUB(R2, 4);
 SUB(R2, STACK(R2)); // R2 = bottom
 MOV(R3, IMM(FP));
-L_fix_stack_loop_g177:
+L_fix_stack_loop_g150:
 CMP(R3, IMM(SP));
-JUMP_GE(L_fix_stack_loop_end_g176);
+JUMP_GE(L_fix_stack_loop_end_g149);
 MOV(STACK(R2), STACK(R3));
 INCR(R2);
 INCR(R3);
-JUMP(L_fix_stack_loop_g177);
-L_fix_stack_loop_end_g176:
+JUMP(L_fix_stack_loop_g150);
+L_fix_stack_loop_end_g149:
 MOV(SP, IMM(R2));
 MOV(FP, R1);
 JUMPA(INDD(R0, 2));
 POP(FP);
 RETURN;
-L_make_closure_g178:
+L_make_closure_g151:
 // Create closure for L_prational
 PUSH(LABEL(L_prational));
 PUSH(IMM(E_PRIVATE));
 CALL(MAKE_SOB_CLOSURE);
 DROP(2);
 MOV(INDD(GLOBAL_TABLE, 48), IMM(R0));
-JUMP(L_make_closure_g179);
+JUMP(L_make_closure_g152);
 L_symbol_to_string:
 PUSH(FP);
 MOV(FP, SP);
@@ -3431,14 +3014,14 @@ DROP(2);
 MOV(R0, IMM(R3));
 POP(FP);
 RETURN;
-L_make_closure_g179:
+L_make_closure_g152:
 // Create closure for L_symbol_to_string
 PUSH(LABEL(L_symbol_to_string));
 PUSH(IMM(E_SYMBOL_TO_STRING));
 CALL(MAKE_SOB_CLOSURE);
 DROP(2);
 MOV(INDD(GLOBAL_TABLE, 49), IMM(R0));
-JUMP(L_make_closure_g180);
+JUMP(L_make_closure_g153);
 L_string_to_symbol:
 PUSH(FP);
 MOV(FP, SP);
@@ -3479,14 +3062,14 @@ MOV(INDD(R0, 0), T_SYMBOL);
 MOV(INDD(R0, 1), IMM(R1));
 POP(FP);
 RETURN;
-L_make_closure_g180:
+L_make_closure_g153:
 // Create closure for L_string_to_symbol
 PUSH(LABEL(L_string_to_symbol));
 PUSH(IMM(E_STRING_TO_SYMBOL));
 CALL(MAKE_SOB_CLOSURE);
 DROP(2);
 MOV(INDD(GLOBAL_TABLE, 50), IMM(R0));
-JUMP(L_make_closure_g181);
+JUMP(L_make_closure_g154);
 L_SET_CAR:
 PUSH(FP);
 MOV(FP, SP);
@@ -3498,14 +3081,14 @@ JUMP_NE(L_err_invalid_param);
 MOV(INDD(R0, 1), FPARG(3));
 POP(FP);
 RETURN;
-L_make_closure_g181:
+L_make_closure_g154:
 // Create closure for L_SET_CAR
 PUSH(LABEL(L_SET_CAR));
 PUSH(IMM(E_PRIVATE));
 CALL(MAKE_SOB_CLOSURE);
 DROP(2);
 MOV(INDD(GLOBAL_TABLE, 51), IMM(R0));
-JUMP(L_make_closure_g182);
+JUMP(L_make_closure_g155);
 L_SET_CDR:
 PUSH(FP);
 MOV(FP, SP);
@@ -3517,7 +3100,7 @@ JUMP_NE(L_err_invalid_param);
 MOV(INDD(R0, 2), FPARG(3));
 POP(FP);
 RETURN;
-L_make_closure_g182:
+L_make_closure_g155:
 // Create closure for L_SET_CDR
 PUSH(LABEL(L_SET_CDR));
 PUSH(IMM(E_PRIVATE));
@@ -3612,6 +3195,9 @@ JUMP_EQ(WRITE_SOB_IF_NOT_VOID_END);
 PUSH(FPARG(0));
 CALL(WRITE_SOB);
 DROP(1);
+PUSH(IMM('\n'));
+CALL(PUTCHAR);
+DROP(1);
 WRITE_SOB_IF_NOT_VOID_END:
 POP(FP);
 RETURN;
@@ -3630,13 +3216,17 @@ CALL(INIT_GLOBAL_TABLE);
 
 
 // applic
-// (const asdsds)
+// (const 80)
 MOV(R0, CONST_TABLE);
-ADD(R0, 28);
+ADD(R0, 23);
 PUSH(IMM(R0));
-PUSH(IMM(1)); // Num of params
-// (fvar symbol->string)
-MOV(R0, INDD(GLOBAL_TABLE,49));
+// (const 9999)
+MOV(R0, CONST_TABLE);
+ADD(R0, 20);
+PUSH(IMM(R0));
+PUSH(IMM(2)); // Num of params
+// (fvar make-vector)
+MOV(R0, INDD(GLOBAL_TABLE,38));
 CMP(INDD(R0, 0), IMM(T_CLOSURE));
 JUMP_NE(L_err_cannot_apply_non_clos);
 PUSH(INDD(R0, 1));
