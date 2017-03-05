@@ -1194,7 +1194,7 @@
                                    (9 1 ("T_INTEGER" "1" "1"))
                                    (12 2 ("T_INTEGER" "2" "1"))
                                    (15 "a" ("T_STRING" "1" ,(number->string (char->integer #\a))))
-                                   (18 'a ("T_SYMBOL" "16"))))))
+                                   (18 a ("T_SYMBOL" "16"))))))
              (make-const-table-helper parsed-expr-list const-table)
              (unbox const-table))))
 
@@ -1247,8 +1247,8 @@
                   ((string? val) (append const-table `((,new-addr ,val ("T_STRING"
                       ,(number->string (length (string->list val)))
                       ,@(string-repr val))))))
-                  ((symbol? val) (make-const-table-symbol val const-table))
                   ((pair? val) (make-const-table-pair val const-table))
+                  ((symbol? val) (make-const-table-symbol val const-table))
                   ((vector? val) (make-const-table-vector val const-table))
                   (else const-table)))))
 
@@ -1262,6 +1262,8 @@
 
 (define make-const-table-pair
      (lambda(val const-table)
+        ;(display const-table) (display 'AMITTTTTTTTTTTTTTTTT)
+        ;(display (member-const-table (cadr val) const-table))
          (if (pair? val)
             (let* ((first-table (make-const-table-single (car val) const-table))
                    (second-table (make-const-table-single (cdr val) first-table))

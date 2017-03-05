@@ -1,1 +1,1 @@
-(append #t)
+ '('''a)                                   ; quote madness
