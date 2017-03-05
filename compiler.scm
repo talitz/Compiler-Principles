@@ -1243,7 +1243,7 @@
                   ((newline? val) (append const-table `((,new-addr ,val
                     ("T_CHAR" "'\\n'")))))
                   ((char? val) (append const-table `((,new-addr ,val ("T_CHAR"
-                     ,(string-append "'" (string val) "'"))))))
+                     ,(string-append (number->string (char->integer val))))))))
                   ((string? val) (append const-table `((,new-addr ,val ("T_STRING"
                       ,(number->string (length (string->list val)))
                       ,@(string-repr val))))))
@@ -1312,13 +1312,47 @@
                       (fold-left (lambda(text sym)
                          (let ((res (string-append
                                  text
+                                 "//create_symbol_tableeeeeeeeee" nl
                                  "MOV(INDD(SYMBOL_STRING_LIST, " (number->string (unbox counter)) "), "
                                     (cadr (caddr sym)) ");" nl
-                                 "MOV(INDD(SYMBOL_STRING_LIST, " (number->string (+ (unbox counter) 1)) "), "
-                                    (number->string (if (>= (+ (unbox counter) 2) symbol-list-size) 0 (+ (unbox counter) 2)))
+                                 "MOV(INDD(SYMBOL_STRING_LIST, " (number->string (+ (unbox counter) 1)) "),"
+                                    (if (>= (+ (unbox counter) 2) symbol-list-size)
+                                       "0"
+                                        (string-append "R9 + " (number->string (+ (unbox counter) 2))))
                                     ");" nl)))
                               (set-box! counter (+ (unbox counter) 2))
                               res)) "" symbols))))))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 (define make-global-table

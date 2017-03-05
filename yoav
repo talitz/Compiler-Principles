@@ -1,0 +1,5 @@
+
+ (let ((string (make-string 2)))
+   (string-set! string 0 (integer->char 97))
+   (string-set! string 1 (integer->char 98))
+   (eq? 'ab (string->symbol string)))

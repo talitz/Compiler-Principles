@@ -4,9 +4,11 @@ COMPARE_SOB_STRING:
   PUSH(R1);
   PUSH(R2);
   PUSH(R3);
-
   MOV(R1, FPARG(0));
   MOV(R2, FPARG(1));
+  
+
+  
   CMP(INDD(R1, 1), INDD(R2, 1));
   JUMP_NE(CSS_NOT_EQ);
   MOV(R0, 1);
