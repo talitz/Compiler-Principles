@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #define DO_SHOW 1
-#include "cisc.h"
-#include "debug_macros.h"
+#include "arch/cisc.h"
+#include "arch/debug_macros.h"
 
 int main()
 {
@@ -10,12 +10,12 @@ START_MACHINE;
 
 JUMP(CONTINUE);
 
-#include "char.lib"
-#include "io.lib"
-#include "math.lib"
-#include "string.lib"
-#include "system.lib"
-#include "scheme.lib"
+#include "arch/char.lib"
+#include "arch/io.lib"
+#include "arch/math.lib"
+#include "arch/string.lib"
+#include "arch/system.lib"
+#include "arch/scheme.lib"
 
 
 #define CONST_TABLE R11
@@ -56,11 +56,11 @@ MOV(INDD(CONST_TABLE, 17), IMM(97));
 MOV(INDD(CONST_TABLE, 18), IMM(T_SYMBOL));
 MOV(INDD(CONST_TABLE, 19), IMM(16));
 MOV(INDD(CONST_TABLE, 20), IMM(T_INTEGER));
-MOV(INDD(CONST_TABLE, 21), IMM(9999));
-MOV(INDD(CONST_TABLE, 22), IMM(1));
+MOV(INDD(CONST_TABLE, 21), IMM(1));
+MOV(INDD(CONST_TABLE, 22), IMM(2));
 MOV(INDD(CONST_TABLE, 23), IMM(T_INTEGER));
-MOV(INDD(CONST_TABLE, 24), IMM(80));
-MOV(INDD(CONST_TABLE, 25), IMM(1));
+MOV(INDD(CONST_TABLE, 24), IMM(1));
+MOV(INDD(CONST_TABLE, 25), IMM(4));
 PUSH(IMM(2));
 CALL(MALLOC);
 DROP(1);
@@ -94,8 +94,20 @@ JUMP_NE(L_eq_exit);
 MOV(R1, INDD(R1, 1));
 MOV(R2, INDD(R2, 1));
 EQ_NOT_SYMBOL:
+CMP(IND(R1), T_INTEGER);
+JUMP_NE(EQ_NOT_INTEGER);
+CMP(IND(R1), T_INTEGER);
+JUMP_NE(L_eq_exit);
+JUMP(L_eq_true);
+CMP(INDD(R0, 1), INDD(R1, 1));
+JUMP_NE(L_eq_exit);
+CMP(INDD(R0, 2), INDD(R1, 2));
+JUMP_NE(L_eq_exit);
+JUMP(L_eq_true);
+EQ_NOT_INTEGER:
 CMP(IMM(R1), IMM(R2));
 JUMP_NE(L_eq_exit);
+L_eq_true:
 MOV(R0, IMM(SOB_TRUE));
 L_eq_exit:
 POP(FP);
@@ -1168,7 +1180,7 @@ INCR(R1);
 MOV(R2, IMM(FP));
 L_fix_stack_empty_loop_g49:
 CMP(R2, IMM(R3));
-JUMP_LE(L_stack_fix_empty_end_g48);
+JUMP_LT(L_stack_fix_empty_end_g48);
 MOV(STACK(R1), STACK(R2));
 DECR(R1);
 DECR(R2);
@@ -1291,11 +1303,10 @@ MOV(R0, FPARG(2));
 PUSH(IMM(R0));
 CALL(MAKE_SOB_BOX);
 DROP(1);
-PUSH(IMM(R0)); // Save the value before calculating a pointer to var
-MOV(R0, FP);
-SUB(R0, 5);
-POP(R1);
-MOV(STACK(R0), R1);
+MOV(R1, FP);
+SUB(R1, 5);
+MOV(STACK(R1), R0);
+MOV(R0, IMM(SOB_VOID));
 // box-set
 // (pvar helper 0)
 MOV(R0, FPARG(2));
@@ -1631,11 +1642,10 @@ MOV(R0, FPARG(2));
 PUSH(IMM(R0));
 CALL(MAKE_SOB_BOX);
 DROP(1);
-PUSH(IMM(R0)); // Save the value before calculating a pointer to var
-MOV(R0, FP);
-SUB(R0, 5);
-POP(R1);
-MOV(STACK(R0), R1);
+MOV(R1, FP);
+SUB(R1, 5);
+MOV(STACK(R1), R0);
+MOV(R0, IMM(SOB_VOID));
 // box-set
 // (pvar helper 0)
 MOV(R0, FPARG(2));
@@ -2119,7 +2129,7 @@ INCR(R1);
 MOV(R2, IMM(FP));
 L_fix_stack_empty_loop_g109:
 CMP(R2, IMM(R3));
-JUMP_LE(L_stack_fix_empty_end_g108);
+JUMP_LT(L_stack_fix_empty_end_g108);
 MOV(STACK(R1), STACK(R2));
 DECR(R1);
 DECR(R2);
@@ -3079,6 +3089,7 @@ MOV(R0, FPARG(2));
 CMP(IND(R0), T_PAIR);
 JUMP_NE(L_err_invalid_param);
 MOV(INDD(R0, 1), FPARG(3));
+MOV(R0, IMM(SOB_VOID));
 POP(FP);
 RETURN;
 L_make_closure_g154:
@@ -3098,6 +3109,7 @@ MOV(R0, FPARG(2));
 CMP(IND(R0), T_PAIR);
 JUMP_NE(L_err_invalid_param);
 MOV(INDD(R0, 2), FPARG(3));
+MOV(R0, IMM(SOB_VOID));
 POP(FP);
 RETURN;
 L_make_closure_g155:
@@ -3216,17 +3228,18 @@ CALL(INIT_GLOBAL_TABLE);
 
 
 // applic
-// (const 80)
+// (const 1/4)
+INFO;
 MOV(R0, CONST_TABLE);
 ADD(R0, 23);
 PUSH(IMM(R0));
-// (const 9999)
+// (const 1/2)
 MOV(R0, CONST_TABLE);
 ADD(R0, 20);
 PUSH(IMM(R0));
 PUSH(IMM(2)); // Num of params
-// (fvar make-vector)
-MOV(R0, INDD(GLOBAL_TABLE,38));
+// (fvar +)
+MOV(R0, INDD(GLOBAL_TABLE,8));
 CMP(INDD(R0, 0), IMM(T_CLOSURE));
 JUMP_NE(L_err_cannot_apply_non_clos);
 PUSH(INDD(R0, 1));

@@ -1,1 +1,1 @@
-(make-vector 9999 80)
+(append #t)

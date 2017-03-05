@@ -1166,6 +1166,11 @@
 (define fraction?
     (lambda(n) (and (not (integer? n)) (rational? n))))
 
+(define newline?
+    (lambda(n) (equal? n #\newline)))
+
+(define newline-str "#\\newline")
+
 (print-gensym #f)
 
 (define read-expr-list
@@ -1235,6 +1240,8 @@
             (cond ((member-const-table val const-table) const-table)
                   ((number? val) (append const-table `((,new-addr ,val
                     ("T_INTEGER" ,(number->string (numerator val)) ,(number->string (denominator val)))))))
+                  ((newline? val) (append const-table `((,new-addr ,val
+                    ("T_CHAR" "'\\n'")))))
                   ((char? val) (append const-table `((,new-addr ,val ("T_CHAR"
                      ,(string-append "'" (string val) "'"))))))
                   ((string? val) (append const-table `((,new-addr ,val ("T_STRING"
@@ -1504,9 +1511,21 @@
           "JUMP_NE(L_eq_exit);" nl
           "MOV(R1, INDD(R1, 1));" nl
           "MOV(R2, INDD(R2, 1));" nl
+          "JUMP(EQ_NOT_INTEGER);" nl
           "EQ_NOT_SYMBOL:" nl
+          "CMP(IND(R1), T_INTEGER);" nl
+          "JUMP_NE(EQ_NOT_INTEGER);" nl
+          "CMP(IND(R2), T_INTEGER);" nl
+          "JUMP_NE(L_eq_exit);" nl
+          "CMP(INDD(R1, 1), INDD(R2, 1));" nl
+          "JUMP_NE(L_eq_exit);" nl
+          "CMP(INDD(R1, 2), INDD(R2, 2));" nl
+          "JUMP_NE(L_eq_exit);" nl
+          "JUMP(L_eq_true);" nl
+          "EQ_NOT_INTEGER:" nl
           "CMP(IMM(R1), IMM(R2));" nl
           "JUMP_NE(L_eq_exit);" nl
+          "L_eq_true:" nl
           "MOV(R0, IMM(SOB_TRUE));" nl
           "L_eq_exit:" nl)))
          (make-primitive-from-code "L_eq" "E_EQ" 2 code const-table global-table))))
@@ -1879,7 +1898,8 @@
     (lambda(const-table global-table)
         (let ((code
            '(lambda v
-              (cond ((or (null? v) (null? (cdr v))) v)
+              (cond ((null? v) v)
+                    ((null? (cdr v)) (car v))
                     ((= (length v) 2) (append-binary (car v) (cadr v)))
                     (else (let ((rest (cdr (cdr v)))
                                 (first (append-binary (car v) (cadr v))))
@@ -2123,7 +2143,8 @@
              "MOV(R0, FPARG(2));" nl
              "CMP(IND(R0), T_PAIR);" nl
              "JUMP_NE(L_err_invalid_param);" nl
-             "MOV(INDD(R0, 1), FPARG(3));" nl)))
+             "MOV(INDD(R0, 1), FPARG(3));" nl
+             "MOV(R0, IMM(SOB_VOID));" nl)))
            (make-primitive-from-code "L_SET_CAR" "E_PRIVATE" 2 code const-table global-table))))
 
 (define make-set-cdr!
@@ -2132,7 +2153,8 @@
              "MOV(R0, FPARG(2));" nl
              "CMP(IND(R0), T_PAIR);" nl
              "JUMP_NE(L_err_invalid_param);" nl
-             "MOV(INDD(R0, 2), FPARG(3));" nl)))
+             "MOV(INDD(R0, 2), FPARG(3));" nl
+             "MOV(R0, IMM(SOB_VOID));" nl)))
            (make-primitive-from-code "L_SET_CDR" "E_PRIVATE" 2 code const-table global-table))))
 
 (define make-char->integer
@@ -2297,8 +2319,8 @@
             "#include <stdio.h>" nl
             "#include <stdlib.h>" nl
             "#define DO_SHOW 1" nl
-            "#include \"cisc.h\"" nl
-            "#include \"debug_macros.h\"" nl
+            "#include \"arch/cisc.h\"" nl
+            "#include \"arch/debug_macros.h\"" nl
             nl
             "int main()" nl
             "{" nl
@@ -2306,12 +2328,12 @@
             nl
             "JUMP(CONTINUE);" nl
             nl
-            "#include \"char.lib\"" nl
-            "#include \"io.lib\"" nl
-            "#include \"math.lib\"" nl
-            "#include \"string.lib\"" nl
-            "#include \"system.lib\"" nl
-            "#include \"scheme.lib\"" nl
+            "#include \"arch/char.lib\"" nl
+            "#include \"arch/io.lib\"" nl
+            "#include \"arch/math.lib\"" nl
+            "#include \"arch/string.lib\"" nl
+            "#include \"arch/system.lib\"" nl
+            "#include \"arch/scheme.lib\"" nl
             nl
             nl
             "#define CONST_TABLE " const-table-register nl
@@ -2638,7 +2660,7 @@
             "MOV(R2, IMM(FP));" nl
             fix-stack-empty-loop ":" nl
             "CMP(R2, IMM(R3));" nl
-            "JUMP_LE(" stack-fix-empty-end ");" nl
+            "JUMP_LT(" stack-fix-empty-end ");" nl
             "MOV(STACK(R1), STACK(R2));" nl
             "DECR(R1);" nl
             "DECR(R2);" nl
@@ -2793,17 +2815,22 @@
         (string-append
            "// " (format "~s" expr) nl
            (code-gen val const-table global-table major)
-           "PUSH(IMM(R0)); // Save the value before calculating a pointer to var" nl
-           (if (eq? (car var) 'pvar)
+           (cond ((eq? (car var) 'pvar)
                (string-append
-                   "MOV(R0, FP);" nl
-                   "SUB(R0, " (number->string (+ 5 (caddr var))) ");" nl
-                   "POP(R1);" nl
-                   "MOV(STACK(R0), R1);" nl)
-               (string-append
-                   (code-gen var const-table global-table major)
-                   "POP(R1);" nl
-                   "MOV(IND(R0), R1);" nl))))))
+                   "MOV(R1, FP);" nl
+                   "SUB(R1, " (number->string (+ 5 (caddr var))) ");" nl
+                   "MOV(STACK(R1), R0);" nl))
+                 ((eq? (car var) 'bvar)
+                   (let ((major (caddr var))
+                         (minor (cadddr var)))
+                     "MOV(R1, FPARG(0));" nl
+                     "MOV(R1, INDD(R1, " (number->string major) "));" nl
+                     "MOV(INDD(R1, " (number->string minor) "), IMM(R0));" nl))
+                 (else (string-append
+                   "MOV(R1, IMM(GLOBAL_TABLE));" nl
+                   "ADD(R1, " (number->string (member-global-table (cadr var) global-table)) ");" nl
+                   "MOV(IND(R1), IMM(R0));" nl)))
+           "MOV(R0, IMM(SOB_VOID));" nl))))
 
 (define code-gen-box
     (lambda(expr const-table global-table major)
